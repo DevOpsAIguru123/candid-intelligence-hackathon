@@ -1,5 +1,6 @@
 import type { ConferenceGraph, FunnelEvent, Speaker } from "@/lib/domain";
 import { FUNNEL_STAGES } from "@/lib/domain";
+import { fetchFirecrawlHtml as scrapeWithFirecrawl } from "@/lib/firecrawl";
 import { deduplicateSpeakers } from "@/lib/normalize";
 import { extractConference } from "@/lib/parser";
 import { scoreSpeaker } from "@/lib/scoring";
@@ -24,6 +25,7 @@ export type IngestionResult =
 export interface IngestionDependencies {
   validateUrl?: (rawUrl: string) => Promise<URL>;
   fetchHtml?: (url: URL) => Promise<string>;
+  fetchFirecrawlHtml?: (url: URL) => Promise<string>;
   now?: () => Date;
 }
 
@@ -71,6 +73,12 @@ export async function ingestConference(
 ): Promise<IngestionResult> {
   const validateUrl = dependencies.validateUrl ?? assertPublicHttpUrl;
   const fetchHtml = dependencies.fetchHtml ?? fetchPublicHtml;
+  const firecrawlApiKey = process.env.FIRECRAWL_API_KEY?.trim();
+  const fetchFirecrawlHtml =
+    dependencies.fetchFirecrawlHtml ??
+    (firecrawlApiKey
+      ? (url: URL) => scrapeWithFirecrawl(url, { apiKey: firecrawlApiKey })
+      : undefined);
   const now = dependencies.now ?? (() => new Date());
 
   let url: URL;
@@ -81,17 +89,39 @@ export async function ingestConference(
   }
 
   let html: string;
+  let sourceMode: "live" | "firecrawl" = "live";
   try {
     html = await fetchHtml(url);
   } catch {
-    return failure(
-      "FETCH_FAILED",
-      "The conference site blocked or timed out. You can load the labeled demo conference instead.",
-    );
+    if (!fetchFirecrawlHtml) {
+      return failure(
+        "FETCH_FAILED",
+        "The conference site blocked or timed out. You can load the labeled demo conference instead.",
+      );
+    }
+    try {
+      html = await fetchFirecrawlHtml(url);
+      sourceMode = "firecrawl";
+    } catch {
+      return failure(
+        "FETCH_FAILED",
+        "The direct request failed and the Firecrawl fallback failed. Check the Firecrawl API key and available credits, or load the labeled demo conference.",
+      );
+    }
   }
 
-  const extracted = extractConference(html, url.toString());
-  const candidates = deduplicateSpeakers(extracted.speakers);
+  let extracted = extractConference(html, url.toString());
+  let candidates = deduplicateSpeakers(extracted.speakers);
+  if (candidates.length === 0 && sourceMode === "live" && fetchFirecrawlHtml) {
+    try {
+      html = await fetchFirecrawlHtml(url);
+      sourceMode = "firecrawl";
+      extracted = extractConference(html, url.toString());
+      candidates = deduplicateSpeakers(extracted.speakers);
+    } catch {
+      // Preserve the specific unsupported-markup response below.
+    }
+  }
   if (candidates.length === 0) {
     return failure(
       "UNSUPPORTED_MARKUP",
@@ -109,7 +139,7 @@ export async function ingestConference(
   const conference = {
     ...extracted.conference,
     id: conferenceId,
-    sourceMode: "live" as const,
+    sourceMode,
     ingestionStatus: "complete" as const,
     lastIngestedAt: now().toISOString(),
   };

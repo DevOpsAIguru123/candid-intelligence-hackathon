@@ -558,6 +558,7 @@ h1 {
 }
 
 .mode-live,
+.mode-firecrawl,
 .status-drafted {
   border-color: #34764f;
   background: rgba(123, 241, 170, 0.08);

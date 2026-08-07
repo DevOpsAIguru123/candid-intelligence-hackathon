@@ -20,6 +20,14 @@ Open [http://localhost:3000](http://localhost:3000).
 
 The SQLite database defaults to `data/speaker-signal.db`. To use another location, copy `.env.example` to `.env.local` and change `DATABASE_PATH`.
 
+To enable rendered fallback for blocked or JavaScript-only conference pages, add a server-side Firecrawl key to `.env.local`:
+
+```bash
+FIRECRAWL_API_KEY=your_key_here
+```
+
+The key is never sent to the browser. Direct fetching remains first; Firecrawl is called only when the direct request fails or returns no credible speaker records.
+
 ## Demo path
 
 1. Open the overview.
@@ -38,6 +46,8 @@ Suggested three-minute story:
 ```text
 Conference URL
   -> public URL and DNS safety checks
+  -> direct HTML fetch
+  -> Firecrawl rendered HTML fallback when configured and needed
   -> HTML and JSON-LD extraction
   -> speaker normalization and conservative deduplication
   -> deterministic ICP scoring
@@ -70,10 +80,12 @@ Live ingestion:
 - Resolves DNS and rejects loopback, private, link-local, multicast, and credential-bearing destinations.
 - Follows at most three validated redirects and times out each request after eight seconds.
 - Reads Event JSON-LD plus repeated speaker/agenda markup.
+- Falls back once to Firecrawl when a configured direct request is blocked, times out, or exposes no speaker records.
+- Labels persisted Firecrawl results **LIVE · FIRECRAWL** so provenance remains visible.
 - Keeps ambiguous same-name records separate instead of forcing a merge.
 - Commits the complete conference graph atomically only after parsing, scoring, and sequencing succeed.
 
-If a page is blocked, JavaScript-only, unsupported, or missing an event date, the API returns an explicit failure and the interface offers the labeled demo. It never silently substitutes sample data.
+If Firecrawl is not configured—or both extraction attempts fail—the API returns an explicit failure and the interface offers the labeled demo. It never silently substitutes sample data. Firecrawl can render a blocked page, but it cannot supply speaker records that the source page does not contain.
 
 The bundled **Gulf Coast Power & AI Forum 2026** dataset is fictional. Its eight speakers deliberately span every funnel stage so the complete motion is demoable without network access or an LLM key.
 
@@ -96,7 +108,7 @@ The test suite covers scoring, year-boundary sequence dates, funnel math, parsin
 
 ## Current limitations
 
-- Static HTML and embedded JSON-LD are supported; JavaScript-only agendas need a browser extraction adapter.
+- Firecrawl renders blocked and JavaScript-heavy pages, but extraction still requires recognizable speaker or Event markup.
 - Session association uses nearby agenda structure rather than a site-specific parser registry.
 - Funnel advancement is persisted, but the prototype presents seeded states instead of integrating external email telemetry.
 - Conference discovery and scheduled refresh are outside the one-day scope.

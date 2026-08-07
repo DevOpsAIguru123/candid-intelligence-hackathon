@@ -1,4 +1,4 @@
-export type SourceMode = "live" | "demo";
+export type SourceMode = "live" | "firecrawl" | "demo";
 
 export type IngestionStatus =
   | "idle"

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { MetricCard } from "@/components/metric-card";
 import { ScoreBadge } from "@/components/score-badge";
 import { getRepository } from "@/lib/repository";
+import { formatSourceMode } from "@/lib/source-mode";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,7 @@ export default async function ConferencePage({ params }: { params: Promise<{ id:
         <div>
           <div className="source-row">
             <span className={`mode-badge mode-${conference.sourceMode}`}>
-              {conference.sourceMode === "demo" ? "DEMO DATA" : "LIVE SOURCE"}
+              {formatSourceMode(conference.sourceMode)}
             </span>
             <span>Ingested {new Date(conference.lastIngestedAt).toLocaleString("en-US")}</span>
           </div>

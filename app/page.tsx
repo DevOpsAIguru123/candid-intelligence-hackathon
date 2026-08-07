@@ -5,6 +5,7 @@ import { MetricCard } from "@/components/metric-card";
 import { ScoreBadge } from "@/components/score-badge";
 import { buildWhyNow } from "@/lib/sequence";
 import { getRepository } from "@/lib/repository";
+import { formatSourceMode } from "@/lib/source-mode";
 
 export const dynamic = "force-dynamic";
 
@@ -74,7 +75,7 @@ export default function OverviewPage() {
           <article className="conference-card" id="conferences">
             <div className="source-row">
               <span className={`mode-badge mode-${topConference.sourceMode}`}>
-                {topConference.sourceMode === "demo" ? "DEMO DATA" : "LIVE SOURCE"}
+                {formatSourceMode(topConference.sourceMode)}
               </span>
               <span>{formatDate(topConference.startsAt)}</span>
             </div>

@@ -62,6 +62,7 @@ Browser
   -> Next.js route handlers
      -> ingestion orchestrator
         -> HTTP fetcher
+        -> optional Firecrawl rendered fallback
         -> HTML/JSON-LD extractor
         -> normalizer and deduplicator
         -> deterministic ICP scorer
@@ -91,7 +92,7 @@ These interfaces allow the parser, database, and LLM provider to change independ
 - `location`
 - `startsAt`
 - `endsAt`
-- `sourceMode`: `live` or `demo`
+- `sourceMode`: `live`, `firecrawl`, or `demo`
 - `ingestionStatus`
 - `lastIngestedAt`
 
@@ -134,12 +135,15 @@ The ingestion route accepts only public `http` or `https` URLs. It rejects malfo
 The live parser uses a layered strategy:
 
 1. Fetch the page with a bounded timeout and an explicit user agent.
-2. Prefer structured JSON-LD and embedded event data when present.
-3. Parse repeated speaker cards and agenda/session structures.
-4. Associate a speaker with the nearest credible session title.
-5. Normalize whitespace, titles, organization names, and person names.
-6. Discard candidates without a credible person name.
-7. Deduplicate only high-confidence name and company matches within the conference.
+2. When configured, retry once through Firecrawl if the direct request is blocked, times out, or exposes no credible speaker records.
+3. Prefer structured JSON-LD and embedded event data when present.
+4. Parse repeated speaker cards and agenda/session structures.
+5. Associate a speaker with the nearest credible session title.
+6. Normalize whitespace, titles, organization names, and person names.
+7. Discard candidates without a credible person name.
+8. Deduplicate only high-confidence name and company matches within the conference.
+
+The Firecrawl key remains server-side. The original public-URL validation runs before either network path, and Firecrawl receives only the validated public URL. Direct fetching remains first to minimize external credits. A successful rendered fallback is persisted as `sourceMode: firecrawl` and displayed as **LIVE · FIRECRAWL**. Firecrawl does not invent speaker data and cannot make a page useful when the source contains no speaker or agenda records.
 
 Ambiguous candidates remain separate. Precision is more important than aggressive merging.
 
@@ -195,7 +199,7 @@ The application exposes one forward action at a time, advancing a speaker to the
 
 - Invalid URL: reject before any fetch and explain the accepted URL formats.
 - Private or loopback URL: reject to prevent server-side request forgery.
-- Timeout or blocked site: preserve existing data and offer the labeled demo dataset.
+- Timeout or blocked site: try the configured Firecrawl fallback, then preserve existing data and offer the labeled demo dataset if it also fails.
 - Unsupported markup: report that no credible speaker records were found.
 - Partial candidate: retain only when a credible name exists; missing fields earn no speculative score.
 - LLM unavailable: use deterministic outreach templates without degrading the core flow.
