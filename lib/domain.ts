@@ -49,6 +49,14 @@ export interface SpeakerCandidate {
   sessionTitle: string;
 }
 
+export interface ConferenceCandidate {
+  name: string;
+  sourceUrl: string;
+  location: string;
+  startsAt: string;
+  endsAt: string;
+}
+
 export type SequenceStatus = "drafted" | "pending" | "complete";
 
 export interface SequenceStep {
