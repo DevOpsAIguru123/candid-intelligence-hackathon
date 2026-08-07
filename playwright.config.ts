@@ -9,7 +9,7 @@ export default defineConfig({
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
-    command: "pnpm dev",
+    command: "node --no-warnings ./node_modules/next/dist/bin/next dev",
     url: "http://127.0.0.1:3000",
     reuseExistingServer: true,
   },
