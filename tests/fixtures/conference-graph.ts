@@ -1,3 +1,7 @@
+/**
+ * Sample conference graph used only by tests. The application never reads
+ * this file: it shows conferences from the database or an empty state.
+ */
 import { FUNNEL_STAGES, type Conference, type ConferenceGraph, type FunnelEvent, type Speaker } from "@/lib/domain";
 import { scoreSpeaker } from "@/lib/scoring";
 import { buildSequence } from "@/lib/sequence";
@@ -25,8 +29,21 @@ const SPEAKER_SEEDS = [
   ["Marcus Chen", "Market Advisor", "Northwind Advisory", "The 2027 Energy Outlook"],
 ] as const;
 
+/** Agenda slots, mirroring the shape a real conference site publishes. */
+const SESSION_SEEDS = [
+  ["Longhorn B", "Onsite Power", "Keynote", "Speaker", "2026-10-12T14:00:00.000Z"],
+  ["Longhorn A", "Grid & Interconnection", "Session", "Speaker", "2026-10-12T15:30:00.000Z"],
+  ["Yellow Rose Ballroom", "Onsite Power", "Session", "Speaker", "2026-10-12T17:00:00.000Z"],
+  ["Longhorn B", "Grid & Interconnection", "Session", "Speaker", "2026-10-12T19:00:00.000Z"],
+  ["Longhorn A", "Construction & Delivery", "Workshop", "Speaker", "2026-10-13T14:00:00.000Z"],
+  ["Yellow Rose Ballroom", "Onsite Power", "Session", "Speaker", "2026-10-13T15:30:00.000Z"],
+  ["Longhorn B", "Construction & Delivery", "Session", "Description Speaker", "2026-10-13T17:00:00.000Z"],
+  ["Riverwalk Cantina", "No tracks found for this session", "Event Experiences and Networking", "Sponsor Speaker", "2026-10-13T19:00:00.000Z"],
+] as const;
+
 function createSpeakers(): Speaker[] {
   return SPEAKER_SEEDS.map(([name, title, company, sessionTitle], index) => {
+    const [room, track, sessionType, role, startsAt] = SESSION_SEEDS[index % SESSION_SEEDS.length];
     const base: Speaker = {
       id: `demo-speaker-${index + 1}`,
       conferenceId: conference.id,
@@ -37,6 +54,19 @@ function createSpeakers(): Speaker[] {
       score: 0,
       scoreReasons: [],
       dedupeKey: `${name.toLowerCase().replace(/\s+/g, "-")}::${company.toLowerCase().replace(/\s+/g, "-")}`,
+      sessions: [
+        {
+          id: `${conference.id}:session:${index + 1}`,
+          title: sessionTitle,
+          startsAt,
+          endsAt: new Date(Date.parse(startsAt) + 45 * 60_000).toISOString(),
+          room,
+          track,
+          sessionType,
+          role,
+          evidenceUrl: `demo://agenda/session-${index + 1}`,
+        },
+      ],
     };
     const scored = scoreSpeaker(base);
     return { ...base, score: scored.score, scoreReasons: scored.reasons };
@@ -55,10 +85,21 @@ function createFunnelEvents(speakers: Speaker[]): FunnelEvent[] {
   });
 }
 
-export function getDemoConference(): ConferenceGraph {
+export function buildSampleGraph(): ConferenceGraph {
   const speakers = createSpeakers();
   return {
-    conference: { ...conference },
+    conference: {
+      ...conference,
+      timezone: "America/Chicago",
+      coverage: {
+        expectedSessions: 6,
+        extractedSessions: 6,
+        expectedTotalSpeakers: 8,
+        totalSpeakers: 8,
+        structuredAgendaSpeakers: 7,
+        descriptionOnlySpeakers: 1,
+      },
+    },
     speakers,
     sequences: speakers
       .filter((speaker) => speaker.score >= 60)

@@ -24,6 +24,7 @@ const RULES: Rule[] = [
     reason: "Engineering, energy, or project-delivery leader",
     source: (speaker) => `${speaker.title} ${speaker.sessionTitle}`,
     pattern: /\b(?:engineering?|project delivery|development|construction|infrastructure|operations)\b/i,
+
   },
   {
     group: "company",
@@ -36,7 +37,7 @@ const RULES: Rule[] = [
   {
     group: "topic",
     points: 20,
-    reason: "Session aligns with priority power infrastructure themes",
+    reason: "Talking about power for data centers or the grid",
     source: (speaker) => speaker.sessionTitle,
     pattern:
       /\b(?:data[ -]?cent(?:er|re)s?|ai campus|power generation|behind[ -]?the[ -]?meter|gas[ -]?to[ -]?power|interconnection|reliability|grid infrastructure|power|energy|microgrid|nuclear|utility|capacity)\b/i,
@@ -44,7 +45,7 @@ const RULES: Rule[] = [
   {
     group: "specificity",
     points: 10,
-    reason: "Session contains a concrete project, capacity, or market signal",
+    reason: "Mentions a real project, its size, or where it is",
     source: (speaker) => speaker.sessionTitle,
     pattern:
       /(?:\b\d+(?:\.\d+)?\s?(?:mw|gw|kv)\b|\b(?:texas|houston|ercot|project|campus|facility|plant|ai infrastructure|hyperscale|gpu clusters|accelerated computing|data[ -]?center expansion|high density)\b)/i,

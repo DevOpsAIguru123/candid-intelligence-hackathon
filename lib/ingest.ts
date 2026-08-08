@@ -98,7 +98,7 @@ export async function ingestConference(
     if (!fetchFirecrawlHtml) {
       return failure(
         "FETCH_FAILED",
-        "The conference site blocked or timed out. You can load the labeled demo conference instead.",
+        "The conference site blocked the request or timed out. Try the agenda page directly rather than the event home page.",
       );
     }
     try {
@@ -107,7 +107,7 @@ export async function ingestConference(
     } catch {
       return failure(
         "FETCH_FAILED",
-        "The direct request failed and the Firecrawl fallback failed. Check the Firecrawl API key and available credits, or load the labeled demo conference.",
+        "The direct request failed and the rendered fallback failed. Check the fallback API key and its remaining credits.",
       );
     }
   }
@@ -127,13 +127,13 @@ export async function ingestConference(
   if (candidates.length === 0) {
     return failure(
       "UNSUPPORTED_MARKUP",
-      "No credible speaker records were found on this page. You can load the labeled demo conference instead.",
+      "No speaker records were found on this page. Point at the agenda or speakers page rather than the event home page.",
     );
   }
   if (!extracted.conference.startsAt || Number.isNaN(new Date(extracted.conference.startsAt).getTime())) {
     return failure(
       "MISSING_EVENT_DATE",
-      "The agenda did not expose a usable conference date. You can load the labeled demo conference instead.",
+      "The agenda did not publish a usable event date, so its speakers cannot be scheduled.",
     );
   }
 

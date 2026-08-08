@@ -28,6 +28,40 @@ export interface Conference {
   sourceMode: SourceMode;
   ingestionStatus: IngestionStatus;
   lastIngestedAt: string;
+  /** IANA zone for the venue. Session times are stored UTC and shown in this. */
+  timezone?: string;
+  coverage?: IngestionCoverage;
+}
+
+/**
+ * How much of the published agenda we actually read. Lets the interface say
+ * "48 of 48 sessions" instead of asking people to trust a number.
+ */
+export interface IngestionCoverage {
+  expectedSessions: number;
+  extractedSessions: number;
+  expectedTotalSpeakers: number;
+  totalSpeakers: number;
+  structuredAgendaSpeakers: number;
+  descriptionOnlySpeakers: number;
+}
+
+/**
+ * A slot on the agenda a speaker appears in. One person can hold several.
+ * `role` separates an earned speaking slot from a sponsor slot, and
+ * `evidenceUrl` is the page we read it from.
+ */
+export interface SpeakerSession {
+  id: string;
+  title: string;
+  description?: string;
+  startsAt: string;
+  endsAt: string;
+  room: string;
+  track: string;
+  sessionType: string;
+  role: string;
+  evidenceUrl: string;
 }
 
 export interface Speaker {
@@ -40,6 +74,8 @@ export interface Speaker {
   score: number;
   scoreReasons: ScoreReason[];
   dedupeKey: string;
+  /** Populated once the agenda source exposes sessions; absent otherwise. */
+  sessions?: SpeakerSession[];
   email?: string;
   phone?: string;
   linkedinUrl?: string;

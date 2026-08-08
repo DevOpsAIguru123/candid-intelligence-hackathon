@@ -10,20 +10,28 @@ export function createRepository(path = "data/speaker-signal.db"): ConferenceRep
   return createSqliteRepository(path);
 }
 
-let defaultRepository: ConferenceRepository | undefined;
+/**
+ * Cached on globalThis so a dev hot reload reuses the existing connection
+ * pool. Re-instantiating one per reload exhausted the pooler client limit.
+ */
+const globalForRepository = globalThis as typeof globalThis & {
+  __speakerSignalRepository?: ConferenceRepository;
+};
 
 export function getRepository(): ConferenceRepository {
-  if (!defaultRepository) {
+  if (!globalForRepository.__speakerSignalRepository) {
     const databaseUrl = process.env.DATABASE_URL?.trim();
     if (databaseUrl) {
       try {
-        defaultRepository = createPostgresRepository(databaseUrl);
+        globalForRepository.__speakerSignalRepository = createPostgresRepository(databaseUrl);
       } catch {
         throw new Error("Invalid DATABASE_URL configuration");
       }
     } else {
-      defaultRepository = createRepository(process.env.DATABASE_PATH ?? "data/speaker-signal.db");
+      globalForRepository.__speakerSignalRepository = createRepository(
+        process.env.DATABASE_PATH ?? "data/speaker-signal.db",
+      );
     }
   }
-  return defaultRepository;
+  return globalForRepository.__speakerSignalRepository;
 }

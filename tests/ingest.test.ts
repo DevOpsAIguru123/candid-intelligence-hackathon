@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { getDemoConference } from "@/data/demo-conference";
+import { buildSampleGraph } from "@/tests/fixtures/conference-graph";
 import { ingestConference } from "@/lib/ingest";
 
 const fixture = readFileSync("tests/fixtures/conference.html", "utf8");
@@ -60,7 +60,7 @@ describe("ingestConference", () => {
     expect(result.conference.sourceMode).toBe("firecrawl");
   });
 
-  it("returns a labeled fallback offer when direct fetch and Firecrawl both fail", async () => {
+  it("reports both attempts failing without inventing a fallback dataset", async () => {
     const result = await ingestConference(
       { url: "https://events.example" },
       {
@@ -77,7 +77,7 @@ describe("ingestConference", () => {
 
     expect(result).toMatchObject({ success: false, fallbackAvailable: true, errorCode: "FETCH_FAILED" });
     if (result.success) throw new Error("Expected ingestion to fail");
-    expect(result.message).toContain("Firecrawl fallback failed");
+    expect(result.message).toContain("rendered fallback failed");
     expect("conference" in result).toBe(false);
   });
 
@@ -120,9 +120,9 @@ describe("ingestConference", () => {
   });
 });
 
-describe("demo conference", () => {
-  it("is explicitly labeled and exercises every funnel stage", () => {
-    const demo = getDemoConference();
+describe("sample conference graph (test fixture)", () => {
+  it("exercises every funnel stage so the chart can be tested", () => {
+    const demo = buildSampleGraph();
 
     expect(demo.conference.sourceMode).toBe("demo");
     expect(demo.speakers).toHaveLength(8);

@@ -1,20 +1,18 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { getDemoConference } from "@/data/demo-conference";
 import { ingestConference } from "@/lib/ingest";
-import { getRepository } from "@/lib/repository";
+import { getRepository } from "@/lib/conference-repository";
 
 export const runtime = "nodejs";
 
-const requestSchema = z
-  .object({
-    url: z.string().trim().optional(),
-    useDemo: z.boolean().optional(),
-  })
-  .refine((value) => value.useDemo === true || Boolean(value.url), {
-    message: "Provide a conference URL or explicitly request demo data.",
-  });
+/**
+ * Live ingestion only. The application shows real conference records or an
+ * honest empty state — there is no sample dataset it can fall back to.
+ */
+const requestSchema = z.object({
+  url: z.string().trim().min(1, "Provide a public conference URL."),
+});
 
 export async function POST(request: Request) {
   const parsed = requestSchema.safeParse(await request.json().catch(() => null));
@@ -25,20 +23,15 @@ export async function POST(request: Request) {
     );
   }
 
-  const repository = getRepository();
-  if (parsed.data.useDemo) {
-    const graph = getDemoConference();
-    await repository.replaceConference(graph);
-    return NextResponse.json({ success: true, ...graph });
-  }
+  const result = await ingestConference({ url: parsed.data.url });
 
-  const result = await ingestConference({ url: parsed.data.url ?? "" });
   if (!result.success) {
     return NextResponse.json(result, {
       status: result.errorCode === "FETCH_FAILED" ? 502 : 422,
     });
   }
 
-  await repository.replaceConference(result);
+  await getRepository().replaceConference(result);
+
   return NextResponse.json(result);
 }

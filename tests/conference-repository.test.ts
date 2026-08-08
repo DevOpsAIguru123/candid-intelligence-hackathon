@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getDemoConference } from "@/data/demo-conference";
+import { buildSampleGraph } from "@/tests/fixtures/conference-graph";
 import type {
   ConferenceIntelligenceGraph,
   ResearchTask,
@@ -20,7 +20,7 @@ function getResearchOutput(summary: string): ResearchTaskOutput {
 }
 
 function getMockIntelligenceGraph(): ConferenceIntelligenceGraph {
-  const demoGraph = getDemoConference();
+  const demoGraph = buildSampleGraph();
   return {
     ...demoGraph,
     sessions: [
@@ -112,7 +112,7 @@ function getMockIntelligenceGraph(): ConferenceIntelligenceGraph {
 describe("SpeakerSignalRepository", () => {
   it("replaces one conference graph atomically and reads its relationships", async () => {
     const repository = createRepository(":memory:");
-    const demoGraph = getDemoConference();
+    const demoGraph = buildSampleGraph();
 
     await repository.replaceConference(demoGraph);
 
@@ -129,7 +129,7 @@ describe("SpeakerSignalRepository", () => {
 
   it("replaces existing conference children instead of duplicating them", async () => {
     const repository = createRepository(":memory:");
-    const demoGraph = getDemoConference();
+    const demoGraph = buildSampleGraph();
 
     await repository.replaceConference(demoGraph);
     await repository.replaceConference(demoGraph);
@@ -143,7 +143,7 @@ describe("SpeakerSignalRepository", () => {
 
   it("advances only to the immediate next funnel stage", async () => {
     const repository = createRepository(":memory:");
-    const demoGraph = getDemoConference();
+    const demoGraph = buildSampleGraph();
     await repository.replaceConference(demoGraph);
     const identifiedOnly = demoGraph.speakers.at(-1);
     if (!identifiedOnly) throw new Error("Demo speaker missing");
@@ -250,7 +250,7 @@ describe("SpeakerSignalRepository", () => {
     expect(initialTasks).toHaveLength(2);
 
     // 2. Replace with base ConferenceGraph for the same conference ID
-    const demoGraph = getDemoConference();
+    const demoGraph = buildSampleGraph();
     await repository.replaceConference(demoGraph);
 
     // 3. Research tasks and coverage must be cleared

@@ -1,93 +1,155 @@
 import Link from "next/link";
+
 import { MetricCard } from "@/components/metric-card";
 import { ScoreBadge } from "@/components/score-badge";
-import { getRepository } from "@/lib/repository";
+import { FUNNEL_STAGES, type FunnelStage } from "@/lib/domain";
+import { getRepository } from "@/lib/conference-repository";
+import { STAGE_LABELS } from "@/lib/planning";
+import { getPlanningRepository } from "@/lib/planning-repository";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Only the people you chose: saved to your meet list, or carrying a draft you
+ * approved. The full list of every extracted speaker lives inside each event,
+ * where it can be filtered and searched.
+ */
 export default async function SpeakersPage() {
   const repository = getRepository();
-  const speakers = await repository.listSpeakers();
-  const conferences = await repository.listConferences();
+  const planning = getPlanningRepository();
 
-  const confMap = new Map(conferences.map((c) => [c.id, c.name]));
-  const qualifiedCount = speakers.filter((s) => s.score >= 60).length;
-  const highPriorityCount = speakers.filter((s) => s.score >= 80).length;
+  const meetList = planning.listMeetList();
+  const approvals = planning.listApprovals();
+  const approvedSpeakerIds = new Set(
+    approvals.filter((approval) => approval.status === "approved").map((a) => a.speakerId),
+  );
+  const meetIds = new Set(meetList.map((entry) => entry.speakerId));
+  const trackedIds = [...new Set([...meetIds, ...approvedSpeakerIds])];
+
+  const [conferences, ...fetched] = await Promise.all([
+    repository.listConferences(),
+    ...trackedIds.map((id) => repository.getSpeaker(id)),
+  ]);
+  const speakers = fetched
+    .filter((speaker) => speaker !== null)
+    .sort((left, right) => right.score - left.score || left.name.localeCompare(right.name));
+
+  const confMap = new Map(conferences.map((conference) => [conference.id, conference.name]));
+  const noteBySpeaker = new Map(meetList.map((entry) => [entry.speakerId, entry.note]));
+
+  // Furthest step each tracked person has reached.
+  const reached = new Map<string, FunnelStage>();
+  if (speakers.length) {
+    for (const event of await repository.listFunnelEvents()) {
+      if (!meetIds.has(event.speakerId) && !approvedSpeakerIds.has(event.speakerId)) continue;
+      const current = reached.get(event.speakerId);
+      if (!current || FUNNEL_STAGES.indexOf(event.stage) > FUNNEL_STAGES.indexOf(current)) {
+        reached.set(event.speakerId, event.stage);
+      }
+    }
+  }
+
+  const withContact = speakers.filter((speaker) => speaker.email || speaker.linkedinUrl).length;
 
   return (
     <div className="page-stack">
       <header className="page-header">
         <div>
-          <p className="eyebrow">Origination / Speakers</p>
-          <h1>Ranked Target Speakers</h1>
+          <p className="eyebrow">Your people</p>
+          <h1>Speakers you are tracking</h1>
         </div>
         <div className="source-chip">
           <span className="live-dot" aria-hidden="true" />
-          {speakers.length} speaker{speakers.length === 1 ? "" : "s"} ranked
+          {speakers.length} {speakers.length === 1 ? "person" : "people"}
         </div>
       </header>
 
-      <section className="metric-grid">
-        <MetricCard label="Total Identified" value={speakers.length} detail="Across all tracked conferences" />
-        <MetricCard label="Qualified Speakers" value={qualifiedCount} detail="ICP score 60 or higher" />
-        <MetricCard label="High Priority" value={highPriorityCount} detail="ICP score 80 or higher" accent />
-        <MetricCard label="Top Signal Score" value={speakers[0]?.score ?? 0} detail="Highest ICP score" />
+      <section className="metric-grid metric-grid-three">
+        <MetricCard label="On your meet list" value={meetIds.size} detail="Saved from an event" />
+        <MetricCard
+          label="With an approved email"
+          value={approvedSpeakerIds.size}
+          detail="Cleared by a person"
+          accent
+        />
+        <MetricCard label="With contact details" value={withContact} detail="Email or LinkedIn found" />
       </section>
 
       <section className="table-panel">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Ranked Targets</p>
-            <h2>Speakers Intelligence</h2>
+            <p className="eyebrow">Tracked</p>
+            <h2>Who you are meeting</h2>
           </div>
-          <span className="table-count">{speakers.length} records</span>
+          <span className="table-count">{speakers.length} people</span>
         </div>
 
         {speakers.length === 0 ? (
-          <p className="subtle-text">No speakers ingested yet. Use the homepage to ingest a conference agenda.</p>
+          <p className="plan-empty">
+            Nobody saved yet. Open an event from{" "}
+            <Link className="inline-link" href="/conferences">
+              Conferences
+            </Link>{" "}
+            and press <strong>＋ Meet</strong> next to the people worth talking to.
+          </p>
         ) : (
-          <div className="table-wrapper">
+          <div className="table-scroll">
             <table>
               <thead>
                 <tr>
-                  <th>Score</th>
+                  <th>Fit</th>
                   <th>Speaker</th>
                   <th>Company</th>
                   <th>Contact</th>
-                  <th>Session Signal</th>
-                  <th>Conference</th>
-                  <th>Action</th>
+                  <th>What to discuss</th>
+                  <th>Event</th>
+                  <th>Where they are</th>
                 </tr>
               </thead>
               <tbody>
-                {speakers.map((speaker) => (
-                  <tr key={speaker.id}>
-                    <td>
-                      <ScoreBadge score={speaker.score} />
-                    </td>
-                    <td>
-                      <strong>{speaker.name}</strong>
-                      <div className="subtle-text">{speaker.title}</div>
-                    </td>
-                    <td>{speaker.company}</td>
-                    <td>
-                      {speaker.email ? (
-                        <a className="text-link" href={`mailto:${speaker.email}`}>
-                          {speaker.email}
-                        </a>
-                      ) : (
-                        <span className="subtle-text">N/A</span>
-                      )}
-                    </td>
-                    <td>{speaker.sessionTitle || "Session not published"}</td>
-                    <td>{confMap.get(speaker.conferenceId) || "Conference"}</td>
-                    <td>
-                      <Link className="text-link" href={`/speakers/${encodeURIComponent(speaker.id)}`}>
-                        Open signal brief →
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+                {speakers.map((speaker) => {
+                  const stage = reached.get(speaker.id);
+                  return (
+                    <tr data-testid="tracked-speaker" key={speaker.id}>
+                      <td>
+                        <ScoreBadge score={speaker.score} />
+                      </td>
+                      <td>
+                        <Link
+                          aria-label={`View ${speaker.name}`}
+                          className="speaker-link"
+                          href={`/speakers/${encodeURIComponent(speaker.id)}`}
+                        >
+                          <strong>{speaker.name}</strong>
+                        </Link>
+                        <small>{speaker.title}</small>
+                      </td>
+                      <td>{speaker.company}</td>
+                      <td>
+                        {speaker.email ? (
+                          <a href={`mailto:${speaker.email}`}>{speaker.email}</a>
+                        ) : speaker.linkedinUrl ? (
+                          <a href={speaker.linkedinUrl} rel="noreferrer noopener" target="_blank">
+                            LinkedIn ↗
+                          </a>
+                        ) : (
+                          <span className="contact-missing">not found</span>
+                        )}
+                      </td>
+                      <td>
+                        {noteBySpeaker.get(speaker.id) || (
+                          <span className="contact-missing">no talking points yet</span>
+                        )}
+                      </td>
+                      <td>{confMap.get(speaker.conferenceId) ?? "Event"}</td>
+                      <td>
+                        <span className={`stage-chip${stage ? "" : " stage-chip-none"}`}>
+                          {stage ? STAGE_LABELS[stage] : "not started"}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

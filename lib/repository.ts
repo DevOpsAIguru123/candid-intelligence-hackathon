@@ -15,15 +15,19 @@ import { nextFunnelStage } from "@/lib/funnel";
 
 type SqlRow = Record<string, string | number | bigint | null>;
 
+/**
+ * Both backing stores are asynchronous, so the contract is too. The SQLite
+ * implementation resolves immediately.
+ */
 export interface SpeakerSignalRepository {
-  replaceConference(graph: ConferenceGraph): void | Promise<void>;
-  listConferences(): Conference[] | Promise<Conference[]>;
-  getConference(id: string): Conference | null | Promise<Conference | null>;
-  getSpeaker(id: string): Speaker | null | Promise<Speaker | null>;
-  listSpeakers(conferenceId?: string): Speaker[] | Promise<Speaker[]>;
-  listSequence(speakerId: string): SequenceStep[] | Promise<SequenceStep[]>;
-  listFunnelEvents(): FunnelEvent[] | Promise<FunnelEvent[]>;
-  advanceSpeaker(speakerId: string, targetStage: FunnelStage): FunnelEvent | Promise<FunnelEvent>;
+  replaceConference(graph: ConferenceGraph): Promise<void>;
+  listConferences(): Promise<Conference[]>;
+  getConference(id: string): Promise<Conference | null>;
+  getSpeaker(id: string): Promise<Speaker | null>;
+  listSpeakers(conferenceId?: string): Promise<Speaker[]>;
+  listSequence(speakerId: string): Promise<SequenceStep[]>;
+  listFunnelEvents(): Promise<FunnelEvent[]>;
+  advanceSpeaker(speakerId: string, targetStage: FunnelStage): Promise<FunnelEvent>;
 }
 
 function mapConference(row: SqlRow): Conference {
@@ -150,7 +154,7 @@ class SqliteSpeakerSignalRepository implements SpeakerSignalRepository {
     try { database.exec("ALTER TABLE speakers ADD COLUMN company_domain TEXT;"); } catch {}
   }
 
-  replaceConference(graph: ConferenceGraph): void {
+  async replaceConference(graph: ConferenceGraph): Promise<void> {
     this.database.exec("BEGIN IMMEDIATE");
     try {
       this.database
@@ -236,27 +240,27 @@ class SqliteSpeakerSignalRepository implements SpeakerSignalRepository {
     }
   }
 
-  listConferences(): Conference[] {
+  async listConferences(): Promise<Conference[]> {
     return (this.database.prepare("SELECT * FROM conferences ORDER BY starts_at").all() as SqlRow[]).map(
       mapConference,
     );
   }
 
-  getConference(id: string): Conference | null {
+  async getConference(id: string): Promise<Conference | null> {
     const row = this.database.prepare("SELECT * FROM conferences WHERE id = ?").get(id) as
       | SqlRow
       | undefined;
     return row ? mapConference(row) : null;
   }
 
-  getSpeaker(id: string): Speaker | null {
+  async getSpeaker(id: string): Promise<Speaker | null> {
     const row = this.database.prepare("SELECT * FROM speakers WHERE id = ?").get(id) as
       | SqlRow
       | undefined;
     return row ? mapSpeaker(row) : null;
   }
 
-  listSpeakers(conferenceId?: string): Speaker[] {
+  async listSpeakers(conferenceId?: string): Promise<Speaker[]> {
     const rows = conferenceId
       ? this.database
           .prepare("SELECT * FROM speakers WHERE conference_id = ? ORDER BY score DESC, name")
@@ -265,7 +269,7 @@ class SqliteSpeakerSignalRepository implements SpeakerSignalRepository {
     return (rows as SqlRow[]).map(mapSpeaker);
   }
 
-  listSequence(speakerId: string): SequenceStep[] {
+  async listSequence(speakerId: string): Promise<SequenceStep[]> {
     return (
       this.database
         .prepare("SELECT * FROM sequence_steps WHERE speaker_id = ? ORDER BY offset_days")
@@ -273,13 +277,13 @@ class SqliteSpeakerSignalRepository implements SpeakerSignalRepository {
     ).map(mapSequence);
   }
 
-  listFunnelEvents(): FunnelEvent[] {
+  async listFunnelEvents(): Promise<FunnelEvent[]> {
     return (this.database.prepare("SELECT * FROM funnel_events ORDER BY occurred_at").all() as SqlRow[]).map(
       mapEvent,
     );
   }
 
-  advanceSpeaker(speakerId: string, targetStage: FunnelStage): FunnelEvent {
+  async advanceSpeaker(speakerId: string, targetStage: FunnelStage): Promise<FunnelEvent> {
     if (!this.getSpeaker(speakerId)) throw new Error("Speaker not found");
     const existing = (
       this.database.prepare("SELECT * FROM funnel_events WHERE speaker_id = ?").all(speakerId) as SqlRow[]
@@ -550,9 +554,23 @@ export function createRepository(path = "data/speaker-signal.db"): SpeakerSignal
   return new SqliteSpeakerSignalRepository(new DatabaseSync(path));
 }
 
+/**
+ * Serverless deployments mount the bundle read-only, so the repository-relative
+ * default cannot be opened for writing there. Only /tmp is writable, and it is
+ * per-instance and ephemeral. An explicit DATABASE_PATH always wins.
+ */
+export function resolveDatabasePath(
+  env: Record<string, string | undefined> = process.env,
+): string {
+  const configured = env.DATABASE_PATH?.trim();
+  if (configured) return configured;
+  if (env.VERCEL || env.AWS_LAMBDA_FUNCTION_NAME) return "/tmp/speaker-signal.db";
+  return "data/speaker-signal.db";
+}
+
 let defaultRepository: SpeakerSignalRepository | undefined;
 
 export function getRepository(): SpeakerSignalRepository {
-  defaultRepository ??= createRepository(process.env.DATABASE_PATH ?? "data/speaker-signal.db");
+  defaultRepository ??= createRepository(resolveDatabasePath());
   return defaultRepository;
 }

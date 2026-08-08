@@ -14,7 +14,7 @@
 - Live and demo data must be labeled visibly and never confused.
 - Only public HTTP(S) URLs may be fetched; loopback and private-network targets are rejected.
 - Scoring is deterministic, explainable, capped at 100, and awards each rule group at most once.
-- The approved visual system is Signal Room: dark surfaces, high contrast, restrained green signal accents, and projector-readable typography.
+- The approved visual system is Signal Room: high contrast, restrained green signal accents, and projector-readable typography. **Superseded 2026-08-08:** the palette was changed from dark surfaces to a standard light interface at the user's request. Layout, type scale, and accent usage are unchanged; only the color tokens in `app/globals.css` differ from the values recorded below.
 - The five outreach offsets are `-14`, `-7`, `-2`, `0`, and `+2` days from the conference start date.
 - The ordered funnel is `identified`, `qualified`, `contacted`, `replied`, `meeting_scheduled`, `met_at_event`, `follow_up_sent`, `conversation_booked`.
 - Use failing tests before writing production behavior, and run the relevant test after every implementation step.

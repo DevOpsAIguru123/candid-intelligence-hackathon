@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import postgres from "postgres";
 import { describe, expect, it } from "vitest";
 
-import { getDemoConference } from "@/data/demo-conference";
+import { buildSampleGraph } from "@/tests/fixtures/conference-graph";
 import type {
   ConferenceIntelligenceGraph,
   ResearchTaskOutput,
@@ -50,7 +50,7 @@ suite("PostgresConferenceRepository integration", () => {
 
     const uniqueId = `pg-test-conf-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const researchOutput = getResearchOutput("Verified PostgreSQL research output.");
-    const baseGraph = getDemoConference();
+    const baseGraph = buildSampleGraph();
     const speakerIds = new Map(
       baseGraph.speakers.map((speaker, index) => [speaker.id, `${uniqueId}:speaker:${index}`]),
     );

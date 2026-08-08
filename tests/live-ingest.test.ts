@@ -1,14 +1,14 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { ingestConference } from "@/lib/ingest";
 import { getRepository } from "@/lib/repository";
 
-describe("live ingestion", () => {
-  it("ingests schedule.datacenterworld.com/speakers using Firecrawl API", async () => {
-    const envText = readFileSync(".env", "utf8");
-    const match = envText.match(/FIRECRAWL_API_KEY=(.*)/);
-    if (match) process.env.FIRECRAWL_API_KEY = match[1].trim();
+// Hits the network and writes into the configured database, which is the
+// shared Supabase when DATABASE_URL is set. Opt in explicitly:
+//   RUN_LIVE_INGEST=1 FIRECRAWL_API_KEY=... npm test
+const liveEnabled = Boolean(process.env.RUN_LIVE_INGEST && process.env.FIRECRAWL_API_KEY);
 
+describe("live ingestion", () => {
+  it.skipIf(!liveEnabled)("ingests a live agenda through the rendered fallback", async () => {
     const result = await ingestConference({ url: "https://schedule.datacenterworld.com/speakers" });
     expect(result.success).toBe(true);
     if (!result.success) throw new Error(`Ingestion failed: ${result.message}`);
