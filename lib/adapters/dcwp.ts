@@ -152,6 +152,9 @@ interface RawDirectorySpeaker {
   title: string;
   company: string;
   sourceUrl: string;
+  email: string;
+  phone: string;
+  linkedinUrl: string;
 }
 
 interface DescriptionSpeakerCandidate {
@@ -522,6 +525,20 @@ export async function fetchDcwpConference(
 
       const speakerId = sIdMatch[1];
       const sourceUrl = new URL(href, scheduleBaseUrl).toString();
+      const emailHref = card.find("a[href^='mailto:']").first().attr("href") ?? "";
+      const phoneHref = card.find("a[href^='tel:']").first().attr("href") ?? "";
+      const linkedinHref = card.find("a[href*='linkedin.com']").first().attr("href") ?? "";
+      const email = cleanText(emailHref.replace(/^mailto:/i, "").split("?")[0]);
+      const phone = cleanText(phoneHref.replace(/^tel:/i, "").split("?")[0]);
+      let linkedinUrl = "";
+      if (linkedinHref) {
+        try {
+          linkedinUrl = new URL(linkedinHref, scheduleBaseUrl).toString();
+        } catch {
+          linkedinUrl = "";
+        }
+      }
+
 
       const titleCompanyEl = card.find(".sb5-speakers-page-title").first();
       let title = "";
@@ -539,13 +556,32 @@ export async function fetchDcwpConference(
           : fullTitleCompText;
       }
 
-      directorySpeakersMap.set(speakerId, {
+      const incomingSpeaker: RawDirectorySpeaker = {
         speakerId,
         name,
         title,
         company,
         sourceUrl,
-      });
+        email,
+        phone,
+        linkedinUrl,
+      };
+      const existingSpeaker = directorySpeakersMap.get(speakerId);
+      directorySpeakersMap.set(
+        speakerId,
+        existingSpeaker
+          ? {
+              speakerId: existingSpeaker.speakerId,
+              name: existingSpeaker.name || incomingSpeaker.name,
+              title: existingSpeaker.title || incomingSpeaker.title,
+              company: existingSpeaker.company || incomingSpeaker.company,
+              sourceUrl: existingSpeaker.sourceUrl || incomingSpeaker.sourceUrl,
+              email: existingSpeaker.email || incomingSpeaker.email,
+              phone: existingSpeaker.phone || incomingSpeaker.phone,
+              linkedinUrl: existingSpeaker.linkedinUrl || incomingSpeaker.linkedinUrl,
+            }
+          : incomingSpeaker,
+      );
     });
   }
 
@@ -650,6 +686,10 @@ export async function fetchDcwpConference(
       name: dirSpk.name,
       title: dirSpk.title,
       company: dirSpk.company,
+      email: dirSpk.email,
+      phone: dirSpk.phone,
+      linkedinUrl: dirSpk.linkedinUrl,
+      profileUrl: dirSpk.sourceUrl,
       sessionTitle: "",
     });
     finalSpeakersMap.set(sId, {
@@ -658,6 +698,10 @@ export async function fetchDcwpConference(
       name: norm.name,
       title: norm.title,
       company: norm.company,
+      email: norm.email,
+      phone: norm.phone,
+      linkedinUrl: norm.linkedinUrl,
+      profileUrl: norm.profileUrl,
       sessionTitle: "",
       score: 0,
       scoreReasons: [],
@@ -729,6 +773,10 @@ export async function fetchDcwpConference(
         name: normalized.name,
         title: normalized.title,
         company: normalized.company,
+        email: "",
+        phone: "",
+        linkedinUrl: "",
+        profileUrl: "",
         sessionTitle: candidate.sessionTitle,
         score: 0,
         scoreReasons: [],

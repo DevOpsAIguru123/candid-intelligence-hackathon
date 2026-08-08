@@ -64,34 +64,42 @@ export interface SpeakerSession {
   evidenceUrl: string;
 }
 
+export interface SpeakerContact {
+  email: string;
+  phone: string;
+  linkedinUrl: string;
+  profileUrl: string;
+}
+
 export interface Speaker {
   id: string;
   conferenceId: string;
   name: string;
   title: string;
   company: string;
+  email: string;
+  phone: string;
+  linkedinUrl: string;
+  profileUrl: string;
+  companyDomain?: string;
   sessionTitle: string;
   score: number;
   scoreReasons: ScoreReason[];
   dedupeKey: string;
   /** Populated once the agenda source exposes sessions; absent otherwise. */
   sessions?: SpeakerSession[];
-  email?: string;
-  phone?: string;
-  linkedinUrl?: string;
-  companyDomain?: string;
 }
 
 export interface SpeakerCandidate {
   name: string;
   title: string;
   company: string;
-  sessionTitle: string;
-  profileUrl?: string;
   email?: string;
   phone?: string;
   linkedinUrl?: string;
+  profileUrl?: string;
   companyDomain?: string;
+  sessionTitle: string;
 }
 
 export interface ConferenceCandidate {

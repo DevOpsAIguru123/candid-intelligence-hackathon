@@ -46,6 +46,11 @@ function mapSpeaker(row: SqlRow): Speaker {
     name: String(row.name),
     title: String(row.title),
     company: String(row.company),
+    email: String(row.email ?? ""),
+    phone: String(row.phone ?? ""),
+    linkedinUrl: String(row.linkedin_url ?? ""),
+    profileUrl: String(row.profile_url ?? ""),
+    companyDomain: row.company_domain ? String(row.company_domain) : undefined,
     sessionTitle: String(row.session_title),
     score: Number(row.score),
     scoreReasons: JSON.parse(String(row.score_reasons)) as Speaker["scoreReasons"],
@@ -139,6 +144,11 @@ export class SqliteConferenceRepository implements ConferenceRepository {
         name TEXT NOT NULL,
         title TEXT NOT NULL,
         company TEXT NOT NULL,
+        email TEXT NOT NULL DEFAULT '',
+        phone TEXT NOT NULL DEFAULT '',
+        linkedin_url TEXT NOT NULL DEFAULT '',
+        profile_url TEXT NOT NULL DEFAULT '',
+        company_domain TEXT,
         session_title TEXT NOT NULL,
         score INTEGER NOT NULL,
         score_reasons TEXT NOT NULL,
@@ -224,6 +234,23 @@ export class SqliteConferenceRepository implements ConferenceRepository {
         (row) => String(row.name),
       ),
     );
+    const existingSpeakerColumns = new Set(
+      (this.database.prepare("PRAGMA table_info(speakers)").all() as SqlRow[]).map((row) =>
+        String(row.name),
+      ),
+    );
+    const speakerColumnMigrations: Record<string, string> = {
+      email: "ALTER TABLE speakers ADD COLUMN email TEXT NOT NULL DEFAULT ''",
+      phone: "ALTER TABLE speakers ADD COLUMN phone TEXT NOT NULL DEFAULT ''",
+      linkedin_url: "ALTER TABLE speakers ADD COLUMN linkedin_url TEXT NOT NULL DEFAULT ''",
+      profile_url: "ALTER TABLE speakers ADD COLUMN profile_url TEXT NOT NULL DEFAULT ''",
+      company_domain: "ALTER TABLE speakers ADD COLUMN company_domain TEXT",
+    };
+    for (const [column, migration] of Object.entries(speakerColumnMigrations)) {
+      if (!existingSpeakerColumns.has(column)) {
+        this.database.exec(migration);
+      }
+    }
     const coverageColumnMigrations: Record<string, string> = {
       expected_description_only_speakers:
         "ALTER TABLE ingestion_coverage ADD COLUMN expected_description_only_speakers INTEGER NOT NULL DEFAULT 0",
@@ -274,9 +301,9 @@ export class SqliteConferenceRepository implements ConferenceRepository {
 
       const insertSpeaker = this.database.prepare(`
         INSERT INTO speakers (
-          id, conference_id, name, title, company, session_title,
-          score, score_reasons, dedupe_key
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          id, conference_id, name, title, company, email, phone, linkedin_url, profile_url,
+          company_domain, session_title, score, score_reasons, dedupe_key
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       for (const speaker of graph.speakers) {
         insertSpeaker.run(
@@ -285,6 +312,11 @@ export class SqliteConferenceRepository implements ConferenceRepository {
           speaker.name,
           speaker.title,
           speaker.company,
+          speaker.email ?? "",
+          speaker.phone ?? "",
+          speaker.linkedinUrl ?? "",
+          speaker.profileUrl ?? "",
+          speaker.companyDomain ?? null,
           speaker.sessionTitle,
           speaker.score,
           JSON.stringify(speaker.scoreReasons),

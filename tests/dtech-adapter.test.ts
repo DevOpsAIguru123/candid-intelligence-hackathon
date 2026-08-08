@@ -55,10 +55,10 @@ describe("fetchDtechConference adapter contract and behavior", () => {
     const deepDive = graph.sessions.find((session) => session.title === "Grid Readiness Deep Dive");
 
     expect(registration).toMatchObject({
-      sourceId: "registration-open:2026-05-12:0730",
+      sourceId: "registration-open:2026-05-13:0730",
       sourceUrl: AGENDA_URL,
-      startsAt: "2026-05-12T14:30:00.000Z",
-      endsAt: "2026-05-12T15:00:00.000Z",
+      startsAt: "2026-05-13T14:30:00.000Z",
+      endsAt: "2026-05-13T15:00:00.000Z",
       location: "Grand Ballroom Foyer",
       sessionType: "Logistics",
     });
@@ -66,14 +66,14 @@ describe("fetchDtechConference adapter contract and behavior", () => {
       sourceId: "grid-readiness:2026-05-12:0800",
       startsAt: "2026-05-12T15:00:00.000Z",
       endsAt: "2026-05-12T16:00:00.000Z",
-      location: "Grand Ballroom",
+      location: "Forum",
       sessionType: "Keynote",
     });
     expect(deepDive).toMatchObject({
       sourceId: "grid-readiness:2026-05-13:1300",
       startsAt: "2026-05-13T20:00:00.000Z",
       endsAt: "2026-05-13T20:45:00.000Z",
-      location: "Forum",
+      location: "Breakout Room A",
       sessionType: "Session",
     });
     expect(keynote?.id).not.toBe(deepDive?.id);
@@ -89,13 +89,21 @@ describe("fetchDtechConference adapter contract and behavior", () => {
     const sam = graph.speakers.find((speaker) => speaker.name === "Sam Lee");
     expect(alex).toMatchObject({
       id: "dtech-data-centers-and-ai-2026-2026-05-12:speaker:alex-rivera",
-      title: "Chief Grid Officer",
-      company: "Example Utility",
+      title: "Vice President, Grid Strategy",
+      company: "GridWorks",
       sessionTitle: "Opening Keynote",
+      email: "alex.rivera@gridworks.example",
+      phone: "+1-480-555-0142",
+      linkedinUrl: "https://www.linkedin.com/in/alex-rivera-gridworks",
+      profileUrl: "https://dtech-events.com/data-ai/speakers/alex-rivera",
     });
     expect(sam).toMatchObject({
-      title: "Director, AI Infrastructure",
-      company: "Example Labs",
+      title: "Director, System Planning",
+      company: "Desert Power",
+      email: "",
+      phone: "",
+      linkedinUrl: "",
+      profileUrl: "https://dtech-events.com/data-ai/speakers/sam-lee",
     });
 
     expect(graph.sessionSpeakers).toHaveLength(3);
@@ -141,7 +149,7 @@ describe("fetchDtechConference adapter contract and behavior", () => {
     const commissionerAgenda = agendaHtml
       .replace("speakers/sam-lee", "speakers/commissioner-kerrick-johnson")
       .replace(
-        "Sam Lee, Director, AI Infrastructure - Example Labs",
+        "Sam Lee, Director, System Planning - Desert Power",
         "Commissioner Kerrick Johnson - Vermont Public Service",
       );
 
@@ -156,7 +164,7 @@ describe("fetchDtechConference adapter contract and behavior", () => {
     const credentialAgenda = agendaHtml
       .replace("speakers/sam-lee", "speakers/saeed-kamalinia-phd")
       .replace(
-        "Sam Lee, Director, AI Infrastructure - Example Labs",
+        "Sam Lee, Director, System Planning - Desert Power",
         "Saeed Kamalinia, Ph.D., Manager, Energy Strategy, AWS Data Center Global Services - Amazon Web Services",
       );
 
@@ -171,7 +179,7 @@ describe("fetchDtechConference adapter contract and behavior", () => {
     const unicodeAgenda = agendaHtml
       .replace("speakers/sam-lee", "speakers/lea-m%C3%A1rquez-peterson")
       .replace(
-        "Sam Lee, Director, AI Infrastructure - Example Labs",
+        "Sam Lee, Director, System Planning - Desert Power",
         "Lea Márquez Peterson, Commissioner - Arizona Corporation",
       );
 

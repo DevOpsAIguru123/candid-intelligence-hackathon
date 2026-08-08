@@ -91,11 +91,27 @@ describe("fetchDcwpConference adapter contract and behavior", () => {
     // Bill Kleyman is in description list but deduped into indexed directory speaker
     const bill = graph.speakers.find((s) => s.name === "Bill Kleyman");
     expect(bill?.id).toBe("data-center-world-power-fixture-2026-09-21:speaker:44835");
+    const dado = graph.speakers.find((s) => s.name === "Dado Slezak");
+    expect(dado).toMatchObject({
+      id: "data-center-world-power-fixture-2026-09-21:speaker:83598",
+      company: "QTS",
+      email: "dado.slezak@example.com",
+      phone: "+1-214-555-0184",
+      linkedinUrl: "https://www.linkedin.com/in/dado-slezak",
+      profileUrl: "https://agenda.example.test/speaker/slezak-dado/83598",
+    });
+
 
     // 4. Stable slug IDs for description-only speakers
     const adam = graph.speakers.find((s) => s.name === "Adam Lavallee");
     expect(adam?.id).toBe("data-center-world-power-fixture-2026-09-21:speaker:desc:adam-lavallee:emerson");
     expect(adam?.company).toBe("Emerson");
+    expect(adam).toMatchObject({
+      email: "",
+      phone: "",
+      linkedinUrl: "",
+      profileUrl: "",
+    });
 
     // 5. Research tasks priority order and instructions
     expect(graph.researchTasks).toHaveLength(3);

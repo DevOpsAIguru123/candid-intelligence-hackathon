@@ -64,14 +64,15 @@ function mapSpeaker(row: SqlRow): Speaker {
     name: String(row.name),
     title: String(row.title),
     company: String(row.company),
+    email: String(row.email ?? ""),
+    phone: String(row.phone ?? ""),
+    linkedinUrl: String(row.linkedin_url ?? ""),
+    profileUrl: String(row.profile_url ?? ""),
+    companyDomain: row.company_domain ? String(row.company_domain) : undefined,
     sessionTitle: String(row.session_title),
     score: Number(row.score),
     scoreReasons: parseScoreReasons(row.score_reasons),
     dedupeKey: String(row.dedupe_key),
-    email: row.email ? String(row.email) : undefined,
-    phone: row.phone ? String(row.phone) : undefined,
-    linkedinUrl: row.linkedin_url ? String(row.linkedin_url) : undefined,
-    companyDomain: row.company_domain ? String(row.company_domain) : undefined,
   };
 }
 
@@ -118,14 +119,15 @@ class SqliteSpeakerSignalRepository implements SpeakerSignalRepository {
         name TEXT NOT NULL,
         title TEXT NOT NULL,
         company TEXT NOT NULL,
+        email TEXT NOT NULL DEFAULT '',
+        phone TEXT NOT NULL DEFAULT '',
+        linkedin_url TEXT NOT NULL DEFAULT '',
+        profile_url TEXT NOT NULL DEFAULT '',
+        company_domain TEXT,
         session_title TEXT NOT NULL,
         score INTEGER NOT NULL,
         score_reasons TEXT NOT NULL,
-        dedupe_key TEXT NOT NULL,
-        email TEXT,
-        phone TEXT,
-        linkedin_url TEXT,
-        company_domain TEXT
+        dedupe_key TEXT NOT NULL
       );
       CREATE TABLE IF NOT EXISTS sequence_steps (
         id TEXT PRIMARY KEY,
@@ -147,11 +149,23 @@ class SqliteSpeakerSignalRepository implements SpeakerSignalRepository {
       CREATE INDEX IF NOT EXISTS idx_speakers_conference ON speakers(conference_id);
       CREATE INDEX IF NOT EXISTS idx_funnel_speaker ON funnel_events(speaker_id);
     `);
-
-    try { database.exec("ALTER TABLE speakers ADD COLUMN email TEXT;"); } catch {}
-    try { database.exec("ALTER TABLE speakers ADD COLUMN phone TEXT;"); } catch {}
-    try { database.exec("ALTER TABLE speakers ADD COLUMN linkedin_url TEXT;"); } catch {}
-    try { database.exec("ALTER TABLE speakers ADD COLUMN company_domain TEXT;"); } catch {}
+    const existingSpeakerColumns = new Set(
+      (database.prepare("PRAGMA table_info(speakers)").all() as SqlRow[]).map((row) =>
+        String(row.name),
+      ),
+    );
+    const speakerColumnMigrations: Record<string, string> = {
+      email: "ALTER TABLE speakers ADD COLUMN email TEXT NOT NULL DEFAULT ''",
+      phone: "ALTER TABLE speakers ADD COLUMN phone TEXT NOT NULL DEFAULT ''",
+      linkedin_url: "ALTER TABLE speakers ADD COLUMN linkedin_url TEXT NOT NULL DEFAULT ''",
+      profile_url: "ALTER TABLE speakers ADD COLUMN profile_url TEXT NOT NULL DEFAULT ''",
+      company_domain: "ALTER TABLE speakers ADD COLUMN company_domain TEXT",
+    };
+    for (const [column, migration] of Object.entries(speakerColumnMigrations)) {
+      if (!existingSpeakerColumns.has(column)) {
+        database.exec(migration);
+      }
+    }
   }
 
   async replaceConference(graph: ConferenceGraph): Promise<void> {
@@ -185,9 +199,9 @@ class SqliteSpeakerSignalRepository implements SpeakerSignalRepository {
 
       const insertSpeaker = this.database.prepare(`
         INSERT INTO speakers (
-          id, conference_id, name, title, company, session_title,
-          score, score_reasons, dedupe_key, email, phone, linkedin_url, company_domain
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          id, conference_id, name, title, company, email, phone, linkedin_url, profile_url,
+          company_domain, session_title, score, score_reasons, dedupe_key
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       for (const speaker of graph.speakers) {
         insertSpeaker.run(
@@ -196,14 +210,15 @@ class SqliteSpeakerSignalRepository implements SpeakerSignalRepository {
           speaker.name,
           speaker.title,
           speaker.company,
+          speaker.email ?? "",
+          speaker.phone ?? "",
+          speaker.linkedinUrl ?? "",
+          speaker.profileUrl ?? "",
+          speaker.companyDomain ?? null,
           speaker.sessionTitle,
           speaker.score,
           JSON.stringify(speaker.scoreReasons),
           speaker.dedupeKey,
-          speaker.email ?? null,
-          speaker.phone ?? null,
-          speaker.linkedinUrl ?? null,
-          speaker.companyDomain ?? null,
         );
       }
 
@@ -344,8 +359,8 @@ async function syncGraphToSupabase(graph: ConferenceGraph): Promise<void> {
 
     for (const sp of graph.speakers) {
       await client.query(
-        `INSERT INTO speakers (id, conference_id, name, title, company, session_title, score, score_reasons, dedupe_key, email, phone, linkedin_url, company_domain)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+        `INSERT INTO speakers (id, conference_id, name, title, company, session_title, score, score_reasons, dedupe_key, email, phone, linkedin_url, profile_url, company_domain)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
         [
           sp.id,
           sp.conferenceId,
@@ -359,6 +374,7 @@ async function syncGraphToSupabase(graph: ConferenceGraph): Promise<void> {
           sp.email ?? null,
           sp.phone ?? null,
           sp.linkedinUrl ?? null,
+          sp.profileUrl || null,
           sp.companyDomain ?? null,
         ]
       );
@@ -430,8 +446,8 @@ export class SupabaseSpeakerSignalRepository implements SpeakerSignalRepository 
 
       for (const sp of graph.speakers) {
         await client.query(
-          `INSERT INTO speakers (id, conference_id, name, title, company, session_title, score, score_reasons, dedupe_key, email, phone, linkedin_url, company_domain)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+          `INSERT INTO speakers (id, conference_id, name, title, company, session_title, score, score_reasons, dedupe_key, email, phone, linkedin_url, profile_url, company_domain)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
           [
             sp.id,
             sp.conferenceId,
@@ -445,6 +461,7 @@ export class SupabaseSpeakerSignalRepository implements SpeakerSignalRepository 
             sp.email ?? null,
             sp.phone ?? null,
             sp.linkedinUrl ?? null,
+            sp.profileUrl || null,
             sp.companyDomain ?? null,
           ]
         );

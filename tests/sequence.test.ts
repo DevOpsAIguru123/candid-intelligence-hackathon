@@ -9,6 +9,10 @@ const speaker: Speaker = {
   name: "Jane Smith",
   title: "VP Engineering",
   company: "ABC Energy",
+  email: "",
+  phone: "",
+  linkedinUrl: "",
+  profileUrl: "",
   sessionTitle: "Behind-the-Meter Power for AI",
   score: 90,
   scoreReasons: [
