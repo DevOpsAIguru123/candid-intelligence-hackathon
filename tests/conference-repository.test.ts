@@ -127,6 +127,103 @@ describe("SpeakerSignalRepository", () => {
     expect(events).toHaveLength(demoGraph.funnelEvents.length);
   });
 
+  it("adds retrievable contacts without perturbing existing speaker fields", async () => {
+    const repository = createRepository(":memory:");
+    const originalGraph = buildSampleGraph();
+    await repository.replaceConference(originalGraph);
+    const before = await repository.listSpeakers(originalGraph.conference.id);
+
+    const enrichedSpeaker = {
+      ...originalGraph.speakers[0],
+      email: "speaker@example.com",
+      phone: "+1 555 0100",
+      linkedinUrl: "https://www.linkedin.com/in/speaker",
+      profileUrl: "https://conference.example/speakers/speaker",
+    };
+    await repository.replaceConference({
+      ...originalGraph,
+      speakers: [enrichedSpeaker, ...originalGraph.speakers.slice(1)],
+    });
+    const after = await repository.listSpeakers(originalGraph.conference.id);
+
+    expect(
+      after.map((speaker) => ({
+        id: speaker.id,
+        conferenceId: speaker.conferenceId,
+        name: speaker.name,
+        title: speaker.title,
+        company: speaker.company,
+        sessionTitle: speaker.sessionTitle,
+        score: speaker.score,
+        scoreReasons: speaker.scoreReasons,
+        dedupeKey: speaker.dedupeKey,
+      })),
+    ).toEqual(
+      before.map((speaker) => ({
+        id: speaker.id,
+        conferenceId: speaker.conferenceId,
+        name: speaker.name,
+        title: speaker.title,
+        company: speaker.company,
+        sessionTitle: speaker.sessionTitle,
+        score: speaker.score,
+        scoreReasons: speaker.scoreReasons,
+        dedupeKey: speaker.dedupeKey,
+      })),
+    );
+    expect(after.find((speaker) => speaker.id === enrichedSpeaker.id)).toMatchObject({
+      email: "speaker@example.com",
+      phone: "+1 555 0100",
+      linkedinUrl: "https://www.linkedin.com/in/speaker",
+      profileUrl: "https://conference.example/speakers/speaker",
+    });
+  });
+
+  it("migrates existing SQLite speakers additively", async () => {
+    const database = new DatabaseSync(":memory:");
+    database.exec(`
+      CREATE TABLE conferences (
+        id TEXT PRIMARY KEY, name TEXT NOT NULL, source_url TEXT NOT NULL,
+        location TEXT NOT NULL, starts_at TEXT NOT NULL, ends_at TEXT NOT NULL,
+        source_mode TEXT NOT NULL, ingestion_status TEXT NOT NULL, last_ingested_at TEXT NOT NULL
+      );
+      CREATE TABLE speakers (
+        id TEXT PRIMARY KEY, conference_id TEXT NOT NULL REFERENCES conferences(id),
+        name TEXT NOT NULL, title TEXT NOT NULL, company TEXT NOT NULL,
+        session_title TEXT NOT NULL, score INTEGER NOT NULL,
+        score_reasons TEXT NOT NULL, dedupe_key TEXT NOT NULL
+      );
+      INSERT INTO conferences VALUES (
+        'legacy-conference', 'Legacy Event', 'https://example.com', 'Houston',
+        '2026-01-01T00:00:00Z', '2026-01-02T00:00:00Z', 'live', 'complete',
+        '2026-01-03T00:00:00Z'
+      );
+      INSERT INTO speakers VALUES (
+        'legacy-speaker', 'legacy-conference', 'Jane Smith', 'VP Engineering',
+        'ABC Energy', 'Power Keynote', 90, '[]', 'jane-smith::abc-energy'
+      );
+    `);
+    const repository = new SqliteConferenceRepository(database);
+
+    await repository.initialize();
+
+    expect(await repository.getSpeaker("legacy-speaker")).toEqual({
+      id: "legacy-speaker",
+      conferenceId: "legacy-conference",
+      name: "Jane Smith",
+      title: "VP Engineering",
+      company: "ABC Energy",
+      email: "",
+      phone: "",
+      linkedinUrl: "",
+      profileUrl: "",
+      sessionTitle: "Power Keynote",
+      score: 90,
+      scoreReasons: [],
+      dedupeKey: "jane-smith::abc-energy",
+    });
+  });
+
   it("replaces existing conference children instead of duplicating them", async () => {
     const repository = createRepository(":memory:");
     const demoGraph = buildSampleGraph();

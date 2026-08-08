@@ -14,6 +14,7 @@ export default defineConfig({
     // so without this the suite runs twice and tries to execute the Playwright
     // specs under vitest.
     exclude: ["e2e/**", "node_modules/**", ".next/**", "dist/**"],
+
     execArgv: ["--no-warnings"],
     setupFiles: ["./vitest.setup.ts"],
   },

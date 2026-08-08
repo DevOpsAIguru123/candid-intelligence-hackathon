@@ -19,6 +19,30 @@ describe("speaker normalization", () => {
     );
   });
 
+  it("normalizes published contact fields and defaults unavailable fields", () => {
+    expect(
+      normalizeSpeaker({
+        ...candidate("Jane Smith", "ABC Energy"),
+        email: " Jane.Smith@Example.com ",
+        phone: " +1 555 0100 ",
+        linkedinUrl: " https://www.linkedin.com/in/jane-smith ",
+        profileUrl: " https://events.example/speakers/jane-smith ",
+      }),
+    ).toMatchObject({
+      email: "jane.smith@example.com",
+      phone: "+1 555 0100",
+      linkedinUrl: "https://www.linkedin.com/in/jane-smith",
+      profileUrl: "https://events.example/speakers/jane-smith",
+    });
+
+    expect(normalizeSpeaker(candidate("Alex Rivera", "Grid Co"))).toMatchObject({
+      email: "",
+      phone: "",
+      linkedinUrl: "",
+      profileUrl: "",
+    });
+  });
+
   it("merges confident within-conference name and company matches", () => {
     const result = deduplicateSpeakers([
       candidate(" Jane  Smith ", "ABC Energy, LLC"),

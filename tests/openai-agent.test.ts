@@ -20,6 +20,10 @@ const mockSpeaker: Speaker = {
   name: "Gene Alessandrini",
   title: "Senior Vice President of Energy & Location Strategy",
   company: "CyrusOne",
+  email: "",
+  phone: "",
+  linkedinUrl: "",
+  profileUrl: "",
   sessionTitle: "Energy Allies: The Role of Data Centers in Building Grid Infrastructure",
   score: 80,
   scoreReasons: [

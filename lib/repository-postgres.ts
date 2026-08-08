@@ -52,6 +52,11 @@ function mapSpeaker(row: SqlRow): Speaker {
     name: String(row.name),
     title: String(row.title),
     company: String(row.company),
+    email: row.email == null ? "" : String(row.email),
+    phone: row.phone == null ? "" : String(row.phone),
+    linkedinUrl: row.linkedin_url == null ? "" : String(row.linkedin_url),
+    profileUrl: row.profile_url == null ? "" : String(row.profile_url),
+    companyDomain: row.company_domain == null ? undefined : String(row.company_domain),
     sessionTitle: String(row.session_title),
     score: Number(row.score),
     scoreReasons,
@@ -135,9 +140,8 @@ export class PostgresConferenceRepository implements ConferenceRepository {
       this.sql = postgres(connectionString, {
         ssl: "require",
         prepare: false,
-        // The Supabase session pooler allows 15 clients for the whole
-        // project, shared with every other tool connected to it.
-        max: 3,
+        // Keep ingestion to one session in the shared 15-client Supabase pool.
+        max: 1,
         idle_timeout: 20,
       });
     } catch {
@@ -165,7 +169,7 @@ export class PostgresConferenceRepository implements ConferenceRepository {
     try {
       const rows = await this.sql`
         SELECT version FROM speaker_signal.schema_migrations
-        WHERE version = '002_coverage_contract'
+        WHERE version = '003_speaker_contacts'
       `;
       const sqlRows = rows as unknown as SqlRow[];
       if (sqlRows.length === 0) {
@@ -212,52 +216,68 @@ export class PostgresConferenceRepository implements ConferenceRepository {
 
       await tx`DELETE FROM speaker_signal.speakers WHERE conference_id = ${graph.conference.id}`;
 
-      for (const speaker of graph.speakers) {
+      if (graph.speakers.length > 0) {
         await tx`
-          INSERT INTO speaker_signal.speakers (
-            id, conference_id, name, title, company, session_title,
-            score, score_reasons, dedupe_key
-          ) VALUES (
-            ${speaker.id},
-            ${speaker.conferenceId},
-            ${speaker.name},
-            ${speaker.title},
-            ${speaker.company},
-            ${speaker.sessionTitle},
-            ${speaker.score},
-            ${tx.json(speaker.scoreReasons as unknown as postgres.JSONValue)},
-            ${speaker.dedupeKey}
-          )
+          INSERT INTO speaker_signal.speakers ${
+            tx(
+              graph.speakers.map((speaker) => ({
+                id: speaker.id,
+                conference_id: speaker.conferenceId,
+                name: speaker.name,
+                title: speaker.title,
+                company: speaker.company,
+                email: speaker.email ?? "",
+                phone: speaker.phone ?? "",
+                linkedin_url: speaker.linkedinUrl ?? "",
+                profile_url: speaker.profileUrl ?? "",
+                company_domain: speaker.companyDomain ?? null,
+                session_title: speaker.sessionTitle,
+                score: speaker.score,
+                score_reasons: tx.json(speaker.scoreReasons as unknown as postgres.JSONValue),
+                dedupe_key: speaker.dedupeKey,
+              })),
+              "id", "conference_id", "name", "title", "company", "email", "phone",
+              "linkedin_url", "profile_url", "company_domain", "session_title", "score",
+              "score_reasons", "dedupe_key",
+            )
+          }
         `;
       }
 
-      for (const step of graph.sequences) {
+      if (graph.sequences.length > 0) {
         await tx`
-          INSERT INTO speaker_signal.sequence_steps (
-            id, speaker_id, offset_days, scheduled_at, channel, status, subject, message
-          ) VALUES (
-            ${step.id},
-            ${step.speakerId},
-            ${step.offsetDays},
-            ${step.scheduledAt},
-            ${step.channel},
-            ${step.status},
-            ${step.subject},
-            ${step.message}
-          )
+          INSERT INTO speaker_signal.sequence_steps ${
+            tx(
+              graph.sequences.map((step) => ({
+                id: step.id,
+                speaker_id: step.speakerId,
+                offset_days: step.offsetDays,
+                scheduled_at: step.scheduledAt,
+                channel: step.channel,
+                status: step.status,
+                subject: step.subject,
+                message: step.message,
+              })),
+              "id", "speaker_id", "offset_days", "scheduled_at",
+              "channel", "status", "subject", "message",
+            )
+          }
         `;
       }
 
-      for (const event of graph.funnelEvents) {
+      if (graph.funnelEvents.length > 0) {
         await tx`
-          INSERT INTO speaker_signal.funnel_events (
-            id, speaker_id, stage, occurred_at
-          ) VALUES (
-            ${event.id},
-            ${event.speakerId},
-            ${event.stage},
-            ${event.occurredAt}
-          )
+          INSERT INTO speaker_signal.funnel_events ${
+            tx(
+              graph.funnelEvents.map((event) => ({
+                id: event.id,
+                speaker_id: event.speakerId,
+                stage: event.stage,
+                occurred_at: event.occurredAt,
+              })),
+              "id", "speaker_id", "stage", "occurred_at",
+            )
+          }
         `;
       }
 
@@ -273,24 +293,27 @@ export class PostgresConferenceRepository implements ConferenceRepository {
         const incomingTaskIds = new Set(graph.researchTasks.map((t) => t.id));
         const incomingSessionIds = new Set(graph.sessions.map((s) => s.id));
 
-        for (const session of graph.sessions) {
+        if (graph.sessions.length > 0) {
           await tx`
-            INSERT INTO speaker_signal.conference_sessions (
-              id, conference_id, source_id, source_url, title, description,
-              starts_at, ends_at, location, track, session_type
-            ) VALUES (
-              ${session.id},
-              ${session.conferenceId},
-              ${session.sourceId},
-              ${session.sourceUrl},
-              ${session.title},
-              ${session.description},
-              ${session.startsAt},
-              ${session.endsAt},
-              ${session.location},
-              ${session.track},
-              ${session.sessionType}
-            )
+            INSERT INTO speaker_signal.conference_sessions ${
+              tx(
+                graph.sessions.map((session) => ({
+                  id: session.id,
+                  conference_id: session.conferenceId,
+                  source_id: session.sourceId,
+                  source_url: session.sourceUrl,
+                  title: session.title,
+                  description: session.description,
+                  starts_at: session.startsAt,
+                  ends_at: session.endsAt,
+                  location: session.location,
+                  track: session.track,
+                  session_type: session.sessionType,
+                })),
+                "id", "conference_id", "source_id", "source_url", "title", "description",
+                "starts_at", "ends_at", "location", "track", "session_type",
+              )
+            }
             ON CONFLICT(id) DO UPDATE SET
               conference_id=EXCLUDED.conference_id,
               source_id=EXCLUDED.source_id,
@@ -305,32 +328,35 @@ export class PostgresConferenceRepository implements ConferenceRepository {
           `;
         }
 
-        for (const task of graph.researchTasks) {
-          const existing = existingTaskMap.get(task.id);
-          const status = existing ? existing.status : task.status;
-          const claimedBy = existing ? existing.claimedBy : task.claimedBy;
-          const claimedAt = existing ? existing.claimedAt : task.claimedAt;
-          const completedAt = existing ? existing.completedAt : task.completedAt;
-          const output = existing ? existing.output : task.output;
-
+        if (graph.researchTasks.length > 0) {
           await tx`
-            INSERT INTO speaker_signal.research_tasks (
-              id, conference_id, session_id, target_url, title, status, priority,
-              instructions, claimed_by, claimed_at, completed_at, output
-            ) VALUES (
-              ${task.id},
-              ${task.conferenceId},
-              ${task.sessionId},
-              ${task.targetUrl},
-              ${task.title},
-              ${status},
-              ${task.priority},
-              ${task.instructions},
-              ${claimedBy},
-              ${claimedAt},
-              ${completedAt},
-              ${output ? tx.json(output as unknown as postgres.JSONValue) : null}
-            )
+            INSERT INTO speaker_signal.research_tasks ${
+              tx(
+                graph.researchTasks.map((task) => {
+                  const existing = existingTaskMap.get(task.id);
+                  return {
+                    id: task.id,
+                    conference_id: task.conferenceId,
+                    session_id: task.sessionId,
+                    target_url: task.targetUrl,
+                    title: task.title,
+                    status: existing?.status ?? task.status,
+                    priority: task.priority,
+                    instructions: task.instructions,
+                    claimed_by: existing?.claimedBy ?? task.claimedBy,
+                    claimed_at: existing?.claimedAt ?? task.claimedAt,
+                    completed_at: existing?.completedAt ?? task.completedAt,
+                    output: existing?.output
+                      ? JSON.stringify(existing.output)
+                      : task.output
+                        ? JSON.stringify(task.output)
+                        : null,
+                  };
+                }),
+                "id", "conference_id", "session_id", "target_url", "title", "status",
+                "priority", "instructions", "claimed_by", "claimed_at", "completed_at", "output",
+              )
+            }
             ON CONFLICT(id) DO UPDATE SET
               conference_id=EXCLUDED.conference_id,
               session_id=EXCLUDED.session_id,
@@ -346,38 +372,45 @@ export class PostgresConferenceRepository implements ConferenceRepository {
           `;
         }
 
-        for (const existing of existingTasks) {
-          if (!incomingTaskIds.has(existing.id)) {
-            await tx`DELETE FROM speaker_signal.research_tasks WHERE id = ${existing.id}`;
-          }
-        }
+        await Promise.all(
+          existingTasks
+            .filter((existing) => !incomingTaskIds.has(existing.id))
+            .map((existing) =>
+              tx`DELETE FROM speaker_signal.research_tasks WHERE id = ${existing.id}`,
+            ),
+        );
 
         const existingSessionRows = await tx`
           SELECT id FROM speaker_signal.conference_sessions WHERE conference_id = ${graph.conference.id}
         `;
         const existingSessions = existingSessionRows as unknown as SqlRow[];
-        for (const sessionRow of existingSessions) {
-          const sid = String(sessionRow.id);
-          if (!incomingSessionIds.has(sid)) {
-            await tx`DELETE FROM speaker_signal.conference_sessions WHERE id = ${sid}`;
-          }
-        }
+        await Promise.all(
+          existingSessions
+            .map((sessionRow) => String(sessionRow.id))
+            .filter((sessionId) => !incomingSessionIds.has(sessionId))
+            .map((sessionId) =>
+              tx`DELETE FROM speaker_signal.conference_sessions WHERE id = ${sessionId}`,
+            ),
+        );
 
         await tx`
           DELETE FROM speaker_signal.session_speakers
           WHERE session_id IN (SELECT id FROM speaker_signal.conference_sessions WHERE conference_id = ${graph.conference.id})
         `;
 
-        for (const link of graph.sessionSpeakers) {
+        if (graph.sessionSpeakers.length > 0) {
           await tx`
-            INSERT INTO speaker_signal.session_speakers (
-              session_id, speaker_id, role, evidence_url
-            ) VALUES (
-              ${link.sessionId},
-              ${link.speakerId},
-              ${link.role},
-              ${link.evidenceUrl}
-            )
+            INSERT INTO speaker_signal.session_speakers ${
+              tx(
+                graph.sessionSpeakers.map((link) => ({
+                  session_id: link.sessionId,
+                  speaker_id: link.speakerId,
+                  role: link.role,
+                  evidence_url: link.evidenceUrl,
+                })),
+                "session_id", "speaker_id", "role", "evidence_url",
+              )
+            }
           `;
         }
 

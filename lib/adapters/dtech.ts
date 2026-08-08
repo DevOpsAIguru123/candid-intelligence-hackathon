@@ -47,6 +47,10 @@ const SPEAKER_ROLE_SELECTOR =
   ".m-seminar-list__list__content__row__items__item__speakers__title";
 const SPEAKER_NAME_LINK_SELECTOR =
   ".m-seminar-list__list__content__row__items__item__speakers__speaker__name a";
+const SPEAKER_ELEMENT_SELECTOR =
+  ".m-seminar-list__list__content__row__items__item__speakers__speaker";
+const SPEAKER_COMPANY_SELECTOR =
+  ".m-seminar-list__list__content__row__items__item__speakers__speaker__company, [itemprop='worksFor'], [itemprop='affiliation']";
 
 const MONTH_BY_NAME: Record<string, number> = {
   january: 1,
@@ -68,6 +72,11 @@ interface ParsedSpeaker {
   name: string;
   title: string;
   company: string;
+  hasStructuredCompany: boolean;
+  email: string;
+  phone: string;
+  linkedinUrl: string;
+  profileUrl: string;
   role: "Speaker" | "Moderator";
 }
 
@@ -224,11 +233,58 @@ function pathSlug(rawHref: string, kind: "session" | "speaker"): string {
   }
   return slug;
 }
+function resolveDirectHttpUrl(rawHref: string, context: string): string {
+  let url: URL;
+  try {
+    url = new URL(rawHref, CANONICAL_SOURCE_URL + "/");
+  } catch {
+    return invariant(`malformed ${context} URL "${rawHref}"`);
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    return invariant(`malformed ${context} URL "${rawHref}"`);
+  }
+  return url.toString();
+}
+
+function directEmail(rawHref: string): string {
+  if (!rawHref.toLowerCase().startsWith("mailto:")) return "";
+  return collapseWhitespace(rawHref.slice("mailto:".length).split("?")[0]);
+}
+
+function directPhone(rawHref: string): string {
+  if (!rawHref.toLowerCase().startsWith("tel:")) return "";
+  return collapseWhitespace(rawHref.slice("tel:".length).split("?")[0]);
+}
+
+function directLinkedinUrl(rawHref: string): string {
+  if (!rawHref) return "";
+  let url: URL;
+  try {
+    url = new URL(rawHref, CANONICAL_SOURCE_URL + "/");
+  } catch {
+    return "";
+  }
+  const hostname = url.hostname.toLowerCase();
+  if (
+    (url.protocol !== "http:" && url.protocol !== "https:") ||
+    (hostname !== "linkedin.com" && !hostname.endsWith(".linkedin.com"))
+  ) {
+    return "";
+  }
+  return url.toString();
+}
+
 
 function parseSpeakerText(
   rawText: string,
   href: string,
   role: "Speaker" | "Moderator",
+  contacts: {
+    company: string;
+    email: string;
+    phone: string;
+    linkedinUrl: string;
+  },
 ): ParsedSpeaker {
   const text = collapseWhitespace(rawText);
   const companySeparator = text.lastIndexOf(" - ");
@@ -256,7 +312,12 @@ function parseSpeakerText(
     pathSlug: pathSlug(href, "speaker"),
     name,
     title,
-    company,
+    company: contacts.company || company,
+    hasStructuredCompany: Boolean(contacts.company),
+    email: contacts.email,
+    phone: contacts.phone,
+    linkedinUrl: contacts.linkedinUrl,
+    profileUrl: resolveDirectHttpUrl(href, "speaker profile"),
     role,
   };
 }
@@ -364,22 +425,74 @@ export async function fetchDtechConference(
           const role: ParsedSpeaker["role"] = /moderator/i.test(rawRole)
             ? "Moderator"
             : "Speaker";
-          const explicitNameLinks = group.find(SPEAKER_NAME_LINK_SELECTOR);
-          const links = explicitNameLinks.length > 0 ? explicitNameLinks : group.find("a");
-
-          group
-            .find(".m-seminar-list__list__content__row__items__item__speakers__speaker")
-            .each((_speakerIndex, speakerElement) => {
-              if ($agenda(speakerElement).find("a[href]").length !== 1) {
-                invariant(`malformed structured speaker link in session "${title}"`);
-              }
+          const speakerElements = group.find(SPEAKER_ELEMENT_SELECTOR);
+          if (speakerElements.length === 0) {
+            const explicitNameLinks = group.find(SPEAKER_NAME_LINK_SELECTOR);
+            const links = explicitNameLinks.length > 0 ? explicitNameLinks : group.find("a");
+            links.each((_linkIndex, linkElement) => {
+              const link = $agenda(linkElement);
+              const href = link.attr("href") ?? "";
+              if (!href) invariant(`malformed structured speaker link in session "${title}"`);
+              speakers.push(
+                parseSpeakerText(link.text(), href, role, {
+                  company: "",
+                  email: "",
+                  phone: "",
+                  linkedinUrl: "",
+                }),
+              );
             });
+            return;
+          }
 
-          links.each((_linkIndex, linkElement) => {
-            const link = $agenda(linkElement);
-            const href = link.attr("href") ?? "";
+          speakerElements.each((_speakerIndex, speakerElement) => {
+            const speakerElementRoot = $agenda(speakerElement);
+            const explicitNameLinks = speakerElementRoot.find(SPEAKER_NAME_LINK_SELECTOR);
+            const profileLinks =
+              explicitNameLinks.length > 0
+                ? explicitNameLinks
+                : speakerElementRoot
+                    .find("a[href]")
+                    .filter((_linkIndex, linkElement) =>
+                      /(?:^|\/)speakers\//i.test($agenda(linkElement).attr("href") ?? ""),
+                    );
+            if (profileLinks.length !== 1) {
+              invariant(`malformed structured speaker link in session "${title}"`);
+            }
+
+            const profileLink = profileLinks.first();
+            const href = profileLink.attr("href") ?? "";
             if (!href) invariant(`malformed structured speaker link in session "${title}"`);
-            speakers.push(parseSpeakerText(link.text(), href, role));
+
+            const attributeValue = (name: string): string =>
+              collapseWhitespace(
+                speakerElementRoot.attr(name) ||
+                  profileLink.attr(name) ||
+                  speakerElementRoot.find(`[${name}]`).first().attr(name),
+              );
+            const mailtoHref =
+              speakerElementRoot.find("a[href^='mailto:' i]").first().attr("href") ?? "";
+            const telHref = speakerElementRoot.find("a[href^='tel:' i]").first().attr("href") ?? "";
+            const linkedinHref =
+              attributeValue("data-linkedin-url") ||
+              speakerElementRoot
+                .find("a[href]")
+                .toArray()
+                .map((element) => $agenda(element).attr("href") ?? "")
+                .find((candidate) => Boolean(directLinkedinUrl(candidate))) ||
+              "";
+            const structuredCompany =
+              attributeValue("data-company") ||
+              collapseWhitespace(speakerElementRoot.find(SPEAKER_COMPANY_SELECTOR).first().text());
+
+            speakers.push(
+              parseSpeakerText(profileLink.text(), href, role, {
+                company: structuredCompany,
+                email: attributeValue("data-email") || directEmail(mailtoHref),
+                phone: attributeValue("data-phone") || directPhone(telHref),
+                linkedinUrl: directLinkedinUrl(linkedinHref),
+              }),
+            );
           });
         });
 
@@ -453,6 +566,10 @@ export async function fetchDtechConference(
           title: parsedSpeaker.title,
           company: parsedSpeaker.company,
           sessionTitle: rawSession.title,
+          email: parsedSpeaker.email,
+          phone: parsedSpeaker.phone,
+          linkedinUrl: parsedSpeaker.linkedinUrl,
+          profileUrl: parsedSpeaker.profileUrl,
         });
         speaker = {
           id: `${conferenceId}:speaker:${parsedSpeaker.pathSlug}`,
@@ -461,11 +578,35 @@ export async function fetchDtechConference(
           title: normalized.title,
           company: normalized.company,
           sessionTitle: normalized.sessionTitle,
+          email: normalized.email,
+          phone: normalized.phone,
+          linkedinUrl: normalized.linkedinUrl,
+          profileUrl: normalized.profileUrl,
           score: 0,
           scoreReasons: [],
           dedupeKey: normalized.dedupeKey,
         };
         speakerByPath.set(parsedSpeaker.pathSlug, speaker);
+      } else {
+        const normalized = normalizeSpeaker({
+          name: parsedSpeaker.name,
+          title: parsedSpeaker.title,
+          company: parsedSpeaker.company,
+          sessionTitle: rawSession.title,
+          email: parsedSpeaker.email,
+          phone: parsedSpeaker.phone,
+          linkedinUrl: parsedSpeaker.linkedinUrl,
+          profileUrl: parsedSpeaker.profileUrl,
+        });
+        if (parsedSpeaker.hasStructuredCompany && normalized.company) {
+          speaker.company = normalized.company;
+        }
+        if (!speaker.email && normalized.email) speaker.email = normalized.email;
+        if (!speaker.phone && normalized.phone) speaker.phone = normalized.phone;
+        if (!speaker.linkedinUrl && normalized.linkedinUrl) {
+          speaker.linkedinUrl = normalized.linkedinUrl;
+        }
+        if (!speaker.profileUrl && normalized.profileUrl) speaker.profileUrl = normalized.profileUrl;
       }
 
       sessionSpeakers.push({

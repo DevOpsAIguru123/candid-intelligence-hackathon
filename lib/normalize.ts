@@ -1,6 +1,7 @@
 import type { SpeakerCandidate } from "@/lib/domain";
 
-export type NormalizedSpeakerCandidate = SpeakerCandidate & { dedupeKey: string };
+export type NormalizedSpeakerCandidate = Omit<Required<SpeakerCandidate>, "companyDomain"> &
+  Pick<SpeakerCandidate, "companyDomain"> & { dedupeKey: string };
 
 function collapseWhitespace(value: string): string {
   return value.replace(/\s+/g, " ").trim();
@@ -32,12 +33,22 @@ export function normalizeSpeaker(candidate: SpeakerCandidate): NormalizedSpeaker
   const name = collapseWhitespace(candidate.name);
   const title = collapseWhitespace(candidate.title);
   const company = collapseWhitespace(candidate.company);
+  const email = collapseWhitespace(candidate.email ?? "").toLowerCase();
+  const phone = collapseWhitespace(candidate.phone ?? "");
+  const linkedinUrl = collapseWhitespace(candidate.linkedinUrl ?? "");
+  const profileUrl = collapseWhitespace(candidate.profileUrl ?? "");
+  const companyDomain = collapseWhitespace(candidate.companyDomain ?? "") || undefined;
   const sessionTitle = collapseWhitespace(candidate.sessionTitle);
 
   return {
     name,
     title,
     company,
+    email,
+    phone,
+    linkedinUrl,
+    profileUrl,
+    companyDomain,
     sessionTitle,
     dedupeKey: `${slug(name)}::${companyKey(company)}`,
   };
@@ -61,6 +72,12 @@ export function deduplicateSpeakers(
       title: preferRichValue(existing.title, candidate.title),
       company: preferRichValue(existing.company, candidate.company),
       sessionTitle: preferRichValue(existing.sessionTitle, candidate.sessionTitle),
+      email: preferRichValue(existing.email, candidate.email),
+      phone: preferRichValue(existing.phone, candidate.phone),
+      linkedinUrl: preferRichValue(existing.linkedinUrl, candidate.linkedinUrl),
+      profileUrl: preferRichValue(existing.profileUrl, candidate.profileUrl),
+      companyDomain:
+        preferRichValue(existing.companyDomain ?? "", candidate.companyDomain ?? "") || undefined,
     });
   }
 
