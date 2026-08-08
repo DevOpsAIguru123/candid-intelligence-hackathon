@@ -5,13 +5,12 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
 
-import { getConferenceSeries } from "@/data/conference-series";
 import { getDemoConference } from "@/data/demo-conference";
 import { CalendarBoard } from "@/components/calendar-board";
 import { FunnelChart } from "@/components/funnel-chart";
 import { DraftApproval } from "@/components/plan-controls";
 import { SpeakerTable } from "@/components/speaker-table";
-import { buildCalendar, summarizeCalendar } from "@/lib/calendar";
+import { buildCalendar, summarizeCalendar, type ConferenceSeries } from "@/lib/calendar";
 import { calculateFunnel } from "@/lib/funnel";
 
 /**
@@ -100,9 +99,24 @@ describe("Conference calendar board", () => {
   const now = new Date("2026-08-08T12:00:00.000Z");
   const demo = getDemoConference();
 
+  // One event read from the database, one watched series nobody has read yet.
+  const watched: ConferenceSeries = {
+    id: "example-summit",
+    name: "Example Power Summit",
+    organizer: "Test Organizer",
+    agendaUrl: "https://events.example/summit",
+    location: "Houston, Texas",
+    typicalStartMonth: 3,
+    typicalStartDay: 9,
+    typicalDurationDays: 3,
+    lens: "core",
+    note: "Watched for tests.",
+    match: ["example power summit"],
+  };
+
   function payload() {
     const entries = buildCalendar({
-      series: getConferenceSeries(),
+      series: [watched],
       conferences: [demo.conference],
       speakers: demo.speakers,
       now,
@@ -110,13 +124,14 @@ describe("Conference calendar board", () => {
     return { generatedAt: now.toISOString(), summary: summarizeCalendar(entries), entries };
   }
 
-  it("lists every watched event and separates read agendas from expected dates", () => {
+  it("separates an event whose speakers were read from one still being watched", () => {
     render(<CalendarBoard initial={payload()} />);
 
-    expect(screen.getAllByTestId("calendar-entry")).toHaveLength(getConferenceSeries().length + 1);
+    expect(screen.getAllByTestId("calendar-entry")).toHaveLength(2);
     expect(screen.getByText("SPEAKERS PUBLISHED")).toBeInTheDocument();
     expect(screen.getByText("dates confirmed")).toBeInTheDocument();
-    expect(screen.getAllByText("dates expected")).toHaveLength(getConferenceSeries().length);
+    expect(screen.getByText("WATCHING")).toBeInTheDocument();
+    expect(screen.getByText("dates expected")).toBeInTheDocument();
   });
 
   it("keeps the month view behind a trigger and opens it on demand", () => {

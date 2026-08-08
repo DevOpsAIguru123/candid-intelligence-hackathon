@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import type { ConferenceSeries } from "@/data/conference-series";
-import { buildCalendar, buildMonthGrid, projectNextEdition, shiftMonthKey } from "@/lib/calendar";
+import {
+  buildCalendar,
+  buildMonthGrid,
+  projectNextEdition,
+  shiftMonthKey,
+  type ConferenceSeries,
+} from "@/lib/calendar";
 import type { Conference, Speaker } from "@/lib/domain";
 
 /**

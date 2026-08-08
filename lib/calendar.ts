@@ -1,5 +1,27 @@
-import type { ConferenceSeries } from "@/data/conference-series";
 import type { Conference, Speaker, SourceMode } from "@/lib/domain";
+
+/**
+ * A recurring event we watch before anyone has read its agenda. Most industry
+ * conferences repeat in the same annual window, so the next edition can be
+ * projected from that window. Nothing supplies these yet — they belong in a
+ * table so the watchlist is data, not code.
+ */
+export interface ConferenceSeries {
+  id: string;
+  name: string;
+  organizer: string;
+  /** Public landing page. The exact agenda path is resolved at check time. */
+  agendaUrl: string;
+  location: string;
+  /** Historical start month, 1-12. */
+  typicalStartMonth: number;
+  typicalStartDay: number;
+  typicalDurationDays: number;
+  lens: "core" | "adjacent";
+  note: string;
+  /** Case-insensitive tokens used to attach an ingested conference to this series. */
+  match: string[];
+}
 
 /**
  * The calendar merges two things the interface has to show side by side:
