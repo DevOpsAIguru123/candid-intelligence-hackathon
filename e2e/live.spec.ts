@@ -26,7 +26,7 @@ async function liveEntry(page: Page): Promise<CalendarEntry> {
 test("the calendar lists real events and opens the one with a speaker list", async ({ page }) => {
   const live = await liveEntry(page);
 
-  await page.goto("/calendar");
+  await page.goto("/conferences");
   await expect(page.getByTestId("calendar-entry").first()).toBeVisible();
   await expect(page.getByText("SPEAKERS PUBLISHED", { exact: true }).first()).toBeVisible();
 
@@ -85,7 +85,7 @@ test("planning decisions save against a real speaker", async ({ page }) => {
 });
 
 test("the month view places real events on their dates", async ({ page }) => {
-  await page.goto("/calendar");
+  await page.goto("/conferences");
 
   const dialog = page.getByTestId("month-dialog");
   await expect(dialog).toBeHidden();

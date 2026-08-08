@@ -1,17 +1,15 @@
 import Link from "next/link";
 
 /**
- * Both navigations kept: the planning views and the cross-conference lists.
- * Grouped so the sidebar still reads as two jobs rather than seven links.
+ * One entry per destination. Conferences is the events board; the calendar
+ * view and a second conferences list showed the same table.
  */
 const navigation = [
   { label: "Overview", href: "/", marker: "01" },
-  { label: "Calendar", href: "/calendar", marker: "02" },
-  { label: "Conferences", href: "/conferences", marker: "03" },
-  { label: "Speakers", href: "/speakers", marker: "04" },
-  { label: "Sequences", href: "/sequences", marker: "05" },
-  { label: "My plan", href: "/plan", marker: "06" },
-  { label: "Progress", href: "/funnel", marker: "07" },
+  { label: "Conferences", href: "/conferences", marker: "02" },
+  { label: "Speakers", href: "/speakers", marker: "03" },
+  { label: "My plan", href: "/plan", marker: "04" },
+  { label: "Progress", href: "/funnel", marker: "05" },
 ];
 
 export function Sidebar() {

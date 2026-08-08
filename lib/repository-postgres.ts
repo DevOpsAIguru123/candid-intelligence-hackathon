@@ -135,7 +135,10 @@ export class PostgresConferenceRepository implements ConferenceRepository {
       this.sql = postgres(connectionString, {
         ssl: "require",
         prepare: false,
-        max: 5,
+        // The Supabase session pooler allows 15 clients for the whole
+        // project, shared with every other tool connected to it.
+        max: 3,
+        idle_timeout: 20,
       });
     } catch {
       throw new Error("Invalid DATABASE_URL configuration");

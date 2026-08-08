@@ -47,7 +47,7 @@ Set `FIRECRAWL_API_KEY` in **Project Settings → Environment Variables** if you
 
 1. Open the overview.
 2. Paste a public agenda URL and click **Analyze conference**, or use an event already in the database.
-3. Open **Calendar** and show the watchlist: every recurring series counting down on its own clock, projected dates before an agenda exists, and the ingested agenda promoted to a confirmed date with ranked speakers.
+3. Open **Conferences** and show the board: every recurring series counting down on its own clock, projected dates before an agenda exists, and the ingested agenda promoted to a confirmed date with ranked speakers.
 4. On the ranked conference page, explain why the top speaker scores 100.
 5. Open their signal brief and show the grounded Why Now recommendation.
 6. Scroll through the five drafts anchored at T-14, T-7, T-2, event day, and T+2.
@@ -125,7 +125,7 @@ The command validates the versioned research contract, transitions the task stat
 
 ## Conference calendar
 
-`/calendar` ranks every conference in the database, soonest first, with its extracted speaker count and top match. Rows read from a real agenda show **SPEAKERS PUBLISHED** and **dates confirmed**.
+`/conferences` ranks every conference in the database, soonest first, with its extracted speaker count and top match. Rows read from a real agenda show **SPEAKERS PUBLISHED** and **dates confirmed**.
 
 `buildCalendar` also accepts a watchlist of recurring series — events that repeat annually and can be projected before anyone reads their agenda, shown as **WATCHING** with **dates expected**. Nothing supplies that list today. It was hardcoded in the app and removed, because guessed dates for events nobody has read do not belong next to real records; when the watchlist becomes a table, it plugs straight back in.
 

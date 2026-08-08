@@ -156,16 +156,13 @@ export function CalendarBoard({ initial }: { initial: CalendarPayload }) {
                 </div>
 
                 <h3>
-                  <Link
-                    className="calendar-entry-link"
-                    href={
-                      entry.conferenceId
-                        ? `/conferences/${entry.conferenceId}`
-                        : `/calendar/${entry.seriesId}`
-                    }
-                  >
-                    {entry.name}
-                  </Link>
+                  {entry.conferenceId ? (
+                    <Link className="calendar-entry-link" href={`/conferences/${entry.conferenceId}`}>
+                      {entry.name}
+                    </Link>
+                  ) : (
+                    entry.name
+                  )}
                 </h3>
                 <p className="calendar-meta">
                   {formatWindow(entry)}
@@ -214,11 +211,16 @@ export function CalendarBoard({ initial }: { initial: CalendarPayload }) {
                   <Link className="secondary-link" href={`/conferences/${entry.conferenceId}`}>
                     See speakers
                   </Link>
-                ) : (
-                  <Link className="secondary-link" href={`/calendar/${entry.seriesId}`}>
-                    Open event
-                  </Link>
-                )}
+                ) : isExternal(entry.agendaUrl) ? (
+                  <a
+                    className="secondary-link"
+                    href={entry.agendaUrl}
+                    rel="noreferrer noopener"
+                    target="_blank"
+                  >
+                    Visit event website
+                  </a>
+                ) : null}
               </div>
             </li>
           );
