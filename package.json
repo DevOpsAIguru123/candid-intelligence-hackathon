@@ -1,0 +1,35 @@
+{
+  "name": "speaker-signal",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --no-warnings ./node_modules/next/dist/bin/next dev",
+    "build": "node --no-warnings ./node_modules/next/dist/bin/next build",
+    "lint": "eslint .",
+    "test": "node --no-warnings ./node_modules/vitest/vitest.mjs run",
+    "test:watch": "node --no-warnings ./node_modules/vitest/vitest.mjs",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "cheerio": "^1.2.0",
+    "next": "^16.3.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@testing-library/jest-dom": "^7.0.0",
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "^26.1.2",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^6.0.5",
+    "eslint": "^9.39.1",
+    "eslint-config-next": "^16.3.0",
+    "jsdom": "^30.0.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
+  }
+}
