@@ -22,7 +22,7 @@ echo " Project: $PROJECT_ID | Region: $REGION | Cluster: $CLUSTER_NAME"
 echo "=========================================================================="
 
 echo "Step 1: Enabling required Google Cloud APIs..."
-gcloud services enable container.googleapis.com artifactregistry.googleapis.com cloudbuild.googleapis.com --project="$PROJECT_ID"
+gcloud services enable container.googleapis.com artifactregistry.googleapis.com cloudbuild.googleapis.com secretmanager.googleapis.com --project="$PROJECT_ID"
 
 echo "Step 2: Checking Artifact Registry repository..."
 if ! gcloud artifacts repositories describe "$REPO_NAME" --location="$REGION" --project="$PROJECT_ID" &>/dev/null; then
@@ -50,15 +50,38 @@ fi
 echo "Step 5: Fetching cluster credentials for kubectl..."
 gcloud container clusters get-credentials "$CLUSTER_NAME" --region="$REGION" --project="$PROJECT_ID"
 
-echo "Step 6: Creating/updating Kubernetes secrets..."
+echo "Step 6: Syncing credentials to Google Cloud Secret Manager & GKE..."
 DATABASE_URL_VAL=$(grep '^DATABASE_URL=' .env.local 2>/dev/null | cut -d'=' -f2- || grep '^DATABASE_URL=' .env 2>/dev/null | cut -d'=' -f2- || true)
 OPENAI_API_KEY_VAL=$(grep '^OPENAI_API_KEY=' .env.local 2>/dev/null | cut -d'=' -f2- || grep '^OPENAI_API_KEY=' .env 2>/dev/null | cut -d'=' -f2- || true)
 FIRECRAWL_API_KEY_VAL=$(grep '^FIRECRAWL_API_KEY=' .env.local 2>/dev/null | cut -d'=' -f2- || grep '^FIRECRAWL_API_KEY=' .env 2>/dev/null | cut -d'=' -f2- || true)
 
+create_or_update_gcp_secret() {
+  local secret_name="$1"
+  local secret_val="$2"
+
+  if [ -n "$secret_val" ]; then
+    if ! gcloud secrets describe "$secret_name" --project="$PROJECT_ID" &>/dev/null; then
+      echo "Creating GCP Secret Manager secret '$secret_name'..."
+      echo -n "$secret_val" | gcloud secrets create "$secret_name" --data-file=- --project="$PROJECT_ID"
+    else
+      echo "Adding new version to GCP Secret Manager secret '$secret_name'..."
+      echo -n "$secret_val" | gcloud secrets versions add "$secret_name" --data-file=- --project="$PROJECT_ID"
+    fi
+  fi
+}
+
+create_or_update_gcp_secret "speaker-signal-db-url" "$DATABASE_URL_VAL"
+create_or_update_gcp_secret "speaker-signal-openai-api-key" "$OPENAI_API_KEY_VAL"
+create_or_update_gcp_secret "speaker-signal-firecrawl-api-key" "$FIRECRAWL_API_KEY_VAL"
+
+DB_URL_SECRET=$(gcloud secrets versions access latest --secret="speaker-signal-db-url" --project="$PROJECT_ID" 2>/dev/null || echo "$DATABASE_URL_VAL")
+OPENAI_SECRET=$(gcloud secrets versions access latest --secret="speaker-signal-openai-api-key" --project="$PROJECT_ID" 2>/dev/null || echo "$OPENAI_API_KEY_VAL")
+FIRECRAWL_SECRET=$(gcloud secrets versions access latest --secret="speaker-signal-firecrawl-api-key" --project="$PROJECT_ID" 2>/dev/null || echo "$FIRECRAWL_API_KEY_VAL")
+
 kubectl create secret generic speaker-signal-secrets \
-  --from-literal=DATABASE_URL="$DATABASE_URL_VAL" \
-  --from-literal=OPENAI_API_KEY="$OPENAI_API_KEY_VAL" \
-  --from-literal=FIRECRAWL_API_KEY="$FIRECRAWL_API_KEY_VAL" \
+  --from-literal=DATABASE_URL="$DB_URL_SECRET" \
+  --from-literal=OPENAI_API_KEY="$OPENAI_SECRET" \
+  --from-literal=FIRECRAWL_API_KEY="$FIRECRAWL_SECRET" \
   --dry-run=client -o yaml | kubectl apply -f -
 
 echo "Step 7: Deploying Kubernetes manifests..."
