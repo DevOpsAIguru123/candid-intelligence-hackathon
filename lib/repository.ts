@@ -587,7 +587,9 @@ export function resolveDatabasePath(
 ): string {
   const configured = env.DATABASE_PATH?.trim();
   if (configured) return configured;
-  if (env.VERCEL || env.AWS_LAMBDA_FUNCTION_NAME) return "/tmp/speaker-signal.db";
+  if (env.VERCEL || env.AWS_LAMBDA_FUNCTION_NAME || env.K_SERVICE || env.NODE_ENV === "production") {
+    return "/tmp/speaker-signal.db";
+  }
   return "data/speaker-signal.db";
 }
 
