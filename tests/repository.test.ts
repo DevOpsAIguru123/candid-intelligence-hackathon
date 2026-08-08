@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { getDemoConference } from "@/data/demo-conference";
+import { buildSampleGraph } from "@/tests/fixtures/conference-graph";
 import { createRepository, resolveDatabasePath } from "@/lib/repository";
 
 describe("SpeakerSignalRepository", () => {
   it("replaces one conference graph atomically and reads its relationships", () => {
     const repository = createRepository(":memory:");
-    const demoGraph = getDemoConference();
+    const demoGraph = buildSampleGraph();
 
     repository.replaceConference(demoGraph);
 
@@ -18,7 +18,7 @@ describe("SpeakerSignalRepository", () => {
 
   it("replaces existing conference children instead of duplicating them", () => {
     const repository = createRepository(":memory:");
-    const demoGraph = getDemoConference();
+    const demoGraph = buildSampleGraph();
 
     repository.replaceConference(demoGraph);
     repository.replaceConference(demoGraph);
@@ -29,7 +29,7 @@ describe("SpeakerSignalRepository", () => {
 
   it("advances only to the immediate next funnel stage", () => {
     const repository = createRepository(":memory:");
-    const demoGraph = getDemoConference();
+    const demoGraph = buildSampleGraph();
     repository.replaceConference(demoGraph);
     const identifiedOnly = demoGraph.speakers.at(-1);
     if (!identifiedOnly) throw new Error("Demo speaker missing");

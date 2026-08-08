@@ -28,15 +28,20 @@ export default async function OverviewPage() {
   const topSpeaker = nextConference ? (await repository.listSpeakers(nextConference.id))[0] : undefined;
   const whyNow = topSpeaker && nextConference ? buildWhyNow(topSpeaker, nextConference) : null;
 
-  const meetCount = planning.listMeetList().length;
+  // Only the people you saved. Counting drafts for every speaker in the
+  // database meant one query per speaker — thousands of them on a real
+  // conference — and told you nothing you act on.
+  const meetList = planning.listMeetList();
   const decided = new Set(
     planning
       .listApprovals()
       .filter((approval) => approval.status !== "pending")
       .map((approval) => approval.stepId),
   );
-  const allSpeakers = await repository.listSpeakers();
-  const sequences = await Promise.all(allSpeakers.map((speaker) => repository.listSequence(speaker.id)));
+  const sequences = await Promise.all(
+    meetList.map((entry) => repository.listSequence(entry.speakerId)),
+  );
+  const meetCount = meetList.length;
   const awaiting = sequences.flat().filter((step) => !decided.has(step.id)).length;
 
   return (

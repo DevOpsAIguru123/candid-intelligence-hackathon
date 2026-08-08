@@ -5,7 +5,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
 
-import { getDemoConference } from "@/data/demo-conference";
+import { buildSampleGraph } from "@/tests/fixtures/conference-graph";
 import { CalendarBoard } from "@/components/calendar-board";
 import { FunnelChart } from "@/components/funnel-chart";
 import { DraftApproval } from "@/components/plan-controls";
@@ -21,7 +21,7 @@ import { calculateFunnel } from "@/lib/funnel";
 
 describe("Outreach progress", () => {
   it("shows every step of the funnel so a gap in the middle is visible", () => {
-    render(<FunnelChart metrics={calculateFunnel(getDemoConference().funnelEvents)} />);
+    render(<FunnelChart metrics={calculateFunnel(buildSampleGraph().funnelEvents)} />);
 
     expect(screen.getAllByTestId("funnel-stage")).toHaveLength(8);
     expect(screen.getByText("Conversation booked")).toBeInTheDocument();
@@ -97,7 +97,7 @@ describe("Speaker workspace", () => {
 
 describe("Conference calendar board", () => {
   const now = new Date("2026-08-08T12:00:00.000Z");
-  const demo = getDemoConference();
+  const demo = buildSampleGraph();
 
   // One event read from the database, one watched series nobody has read yet.
   const watched: ConferenceSeries = {

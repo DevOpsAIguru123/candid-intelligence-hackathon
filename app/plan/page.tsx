@@ -25,7 +25,15 @@ export default async function PlanPage() {
   const approvals = planning.listApprovals();
   const approvalByStep = new Map(approvals.map((approval) => [approval.stepId, approval]));
 
-  const speakersById = new Map((await repository.listSpeakers()).map((speaker) => [speaker.id, speaker]));
+  // Fetch only the people on the meet list. Loading every speaker in the
+  // database, then a sequence for each, is thousands of queries on a real
+  // conference and shows drafts for people nobody chose.
+  const savedSpeakers = await Promise.all(
+    meetList.map((entry) => repository.getSpeaker(entry.speakerId)),
+  );
+  const speakersById = new Map(
+    savedSpeakers.filter((speaker) => speaker !== null).map((speaker) => [speaker.id, speaker]),
+  );
   const sequenceLists = await Promise.all(
     [...speakersById.keys()].map(async (speakerId) =>
       (await repository.listSequence(speakerId)).map((step) => ({ step, speakerId })),
@@ -44,12 +52,12 @@ export default async function PlanPage() {
   );
   // Drafts for people you actually saved come first — the rest of the queue is
   // still there, just below the ones you care about.
-  const savedSpeakers = new Set(meetList.map((entry) => entry.speakerId));
+  const savedSpeakerIds = new Set(meetList.map((entry) => entry.speakerId));
   const waiting = drafts
     .filter((draft) => (approvalByStep.get(draft.step.id)?.status ?? "pending") === "pending")
     .sort(
       (left, right) =>
-        Number(savedSpeakers.has(right.speakerId)) - Number(savedSpeakers.has(left.speakerId)),
+        Number(savedSpeakerIds.has(right.speakerId)) - Number(savedSpeakerIds.has(left.speakerId)),
     );
 
   return (
@@ -68,7 +76,7 @@ export default async function PlanPage() {
       <section className="metric-grid" aria-label="Your plan at a glance">
         <MetricCard label="Events you are attending" value={summary.attendingCount} detail="Marked going in person" />
         <MetricCard label="People to meet" value={summary.meetCount} detail="Saved across all events" />
-        <MetricCard label="Emails to approve" value={summary.awaitingApproval} detail="Nobody has reviewed these yet" accent />
+        <MetricCard label="Emails to approve" value={summary.awaitingApproval} detail="For people on your meet list" accent />
         <MetricCard label="Approved to send" value={summary.approved} detail="Cleared by a person" />
       </section>
 

@@ -1,3 +1,7 @@
+/**
+ * Sample conference graph used only by tests. The application never reads
+ * this file: it shows conferences from the database or an empty state.
+ */
 import { FUNNEL_STAGES, type Conference, type ConferenceGraph, type FunnelEvent, type Speaker } from "@/lib/domain";
 import { scoreSpeaker } from "@/lib/scoring";
 import { buildSequence } from "@/lib/sequence";
@@ -81,7 +85,7 @@ function createFunnelEvents(speakers: Speaker[]): FunnelEvent[] {
   });
 }
 
-export function getDemoConference(): ConferenceGraph {
+export function buildSampleGraph(): ConferenceGraph {
   const speakers = createSpeakers();
   return {
     conference: {

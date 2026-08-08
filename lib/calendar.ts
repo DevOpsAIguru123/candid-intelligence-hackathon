@@ -226,8 +226,7 @@ export interface CalendarInput {
 
 /**
  * One ranked list of every event the engine is watching: soonest first, with
- * finished events kept at the end rather than dropped, so a demo never shows an
- * empty board and history stays visible.
+ * finished events kept at the end rather than dropped, so history stays visible.
  */
 export function buildCalendar(input: CalendarInput): CalendarEntry[] {
   const { series, conferences, speakers, now } = input;
