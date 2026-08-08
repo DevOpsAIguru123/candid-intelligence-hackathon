@@ -23,6 +23,7 @@ Open [http://localhost:3000](http://localhost:3000).
 The conference adapter workflows support both PostgreSQL/Supabase and SQLite repositories:
 - When `DATABASE_URL` is set in `.env.local` (e.g. `DATABASE_URL=postgresql://...`), the DCWP ingestion and research-task scripts persist to PostgreSQL/Supabase. Run `pnpm db:migrate` before live ingestion to apply the schema.
 - When `DATABASE_URL` is absent or empty, those scripts fall back locally to SQLite (`data/speaker-signal.db` or custom `DATABASE_PATH`).
+
 To enable rendered fallback for blocked or JavaScript-only conference pages, add a server-side Firecrawl key to `.env.local`:
 
 ```bash
@@ -126,8 +127,8 @@ The command validates the versioned research contract, transitions the task stat
 
 `/calendar` is the watchlist view. It merges two sources into one ranked board, soonest event first:
 
-- **Seeded recurring series** (`data/conference-series.ts`) — Data Center World Power, DTECH Data Centers & AI, CERAWeek, POWERGEN, Gastech, Reuters Events, and Infocast. Industry events repeat in the same annual window, so the next edition is projected from that window and appears on the board before an organizer publishes anything. Projected dates are labeled **projected window** and are never presented as confirmed.
-- **Ingested agendas** — any conference already in the repository. It attaches to its series by name token or agenda host, flips the row to **AGENDA LIVE** with a **confirmed date**, and shows extracted speaker counts and the top-ranked signal.
+- **Seeded recurring series** (`data/conference-series.ts`) — Data Center World Power, DTECH Data Centers & AI, CERAWeek, POWERGEN, Gastech, Reuters Events, and Infocast. Industry events repeat in the same annual window, so the next edition is projected from that window and appears on the board before an organizer publishes anything. Projected dates are labeled **dates expected** and are never presented as confirmed.
+- **Ingested agendas** — any conference already in the repository. It attaches to its series by name token or agenda host, flips the row to **SPEAKERS PUBLISHED** with **dates confirmed**, and shows extracted speaker counts and the top match.
 
 **Every row opens.** Analyzed events go to their speaker workspace; watched events with no speaker list yet get their own page showing expected dates, why they are on the watchlist, and a **Read the speaker list now** button that runs the same ingestion the overview form does. Once it succeeds the event permanently lives at `/conferences/[id]` and the watched page forwards there.
 
