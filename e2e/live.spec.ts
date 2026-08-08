@@ -84,6 +84,23 @@ test("planning decisions save against a real speaker", async ({ page }) => {
   );
 });
 
+test("the speakers page lists only people you chose, not the whole database", async ({ page }) => {
+  const live = await liveEntry(page);
+
+  // Save one person, then confirm the page shows them and not the full list.
+  await page.goto(`/speakers/${encodeURIComponent(live.topSpeaker!.id)}`);
+  const add = page.getByRole("button", { name: `Add ${live.topSpeaker!.name} to your meet list` });
+  if (await add.count()) await add.click();
+
+  await page.goto("/speakers");
+  const rows = page.getByTestId("tracked-speaker");
+  const tracked = await rows.count();
+
+  expect(tracked).toBeGreaterThan(0);
+  expect(tracked).toBeLessThan(live.speakerCount);
+  await expect(rows.filter({ hasText: live.topSpeaker!.name })).toHaveCount(1);
+});
+
 test("the month view places real events on their dates", async ({ page }) => {
   await page.goto("/conferences");
 
