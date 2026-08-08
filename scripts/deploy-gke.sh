@@ -39,13 +39,20 @@ IMAGE_URI="$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/$IMAGE_NAME:latest"
 echo "Step 3: Building and pushing container image with Cloud Build..."
 gcloud builds submit --tag="$IMAGE_URI" --project="$PROJECT_ID" .
 
-echo "Step 4: Ensuring GKE Autopilot cluster '$CLUSTER_NAME' exists..."
+echo "Step 4: Ensuring GKE Autopilot cluster '$CLUSTER_NAME' exists and is RUNNING..."
 if ! gcloud container clusters describe "$CLUSTER_NAME" --region="$REGION" --project="$PROJECT_ID" &>/dev/null; then
   echo "Creating GKE Autopilot cluster '$CLUSTER_NAME' in $REGION (this may take 4-6 minutes)..."
   gcloud container clusters create-auto "$CLUSTER_NAME" \
     --region="$REGION" \
     --project="$PROJECT_ID"
 fi
+
+echo "Waiting for GKE cluster '$CLUSTER_NAME' to reach RUNNING status..."
+until [ "$(gcloud container clusters describe "$CLUSTER_NAME" --region="$REGION" --project="$PROJECT_ID" --format="value(status)" 2>/dev/null)" = "RUNNING" ]; do
+  echo "Cluster status: $(gcloud container clusters describe "$CLUSTER_NAME" --region="$REGION" --project="$PROJECT_ID" --format="value(status)" 2>/dev/null). Waiting 15 seconds..."
+  sleep 15
+done
+echo "Cluster '$CLUSTER_NAME' is RUNNING!"
 
 echo "Step 5: Fetching cluster credentials for kubectl..."
 gcloud container clusters get-credentials "$CLUSTER_NAME" --region="$REGION" --project="$PROJECT_ID"
