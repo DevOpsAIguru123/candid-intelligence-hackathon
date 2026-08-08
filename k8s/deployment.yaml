@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: speaker-signal-app
+  labels:
+    app: speaker-signal-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: speaker-signal-app
+  template:
+    metadata:
+      labels:
+        app: speaker-signal-app
+    spec:
+      containers:
+        - name: speaker-signal
+          image: LOCATION-docker.pkg.dev/PROJECT_ID/speaker-signal-repo/speaker-signal-app:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+              name: http
+          envFrom:
+            - secretRef:
+                name: speaker-signal-secrets
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
