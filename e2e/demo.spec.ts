@@ -12,7 +12,7 @@ test("loads demo data and reaches ranked speaker, sequence, and funnel", async (
   await expect(page.getByTestId("sequence-step")).toHaveCount(5);
   await expect(page.getByText("DRAFTS ONLY · NEVER SENT")).toBeVisible();
 
-  await page.getByRole("link", { name: "Funnel" }).click();
+  await page.getByRole("link", { name: "Progress" }).click();
   await expect(page.getByTestId("funnel-stage")).toHaveCount(8);
   await expect(page.getByText("Conversation booked")).toBeVisible();
 });

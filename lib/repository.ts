@@ -281,9 +281,23 @@ export function createRepository(path = "data/speaker-signal.db"): SpeakerSignal
   return new SqliteSpeakerSignalRepository(new DatabaseSync(path));
 }
 
+/**
+ * Serverless deployments mount the bundle read-only, so the repository-relative
+ * default cannot be opened for writing there. Only /tmp is writable, and it is
+ * per-instance and ephemeral. An explicit DATABASE_PATH always wins.
+ */
+export function resolveDatabasePath(
+  env: Record<string, string | undefined> = process.env,
+): string {
+  const configured = env.DATABASE_PATH?.trim();
+  if (configured) return configured;
+  if (env.VERCEL || env.AWS_LAMBDA_FUNCTION_NAME) return "/tmp/speaker-signal.db";
+  return "data/speaker-signal.db";
+}
+
 let defaultRepository: SpeakerSignalRepository | undefined;
 
 export function getRepository(): SpeakerSignalRepository {
-  defaultRepository ??= createRepository(process.env.DATABASE_PATH ?? "data/speaker-signal.db");
+  defaultRepository ??= createRepository(resolveDatabasePath());
   return defaultRepository;
 }

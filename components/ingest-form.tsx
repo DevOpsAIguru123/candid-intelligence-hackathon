@@ -14,13 +14,22 @@ const PIPELINE: Exclude<IngestionStatus, "idle" | "failed">[] = [
 ];
 
 const LABELS: Record<IngestionStatus, string> = {
-  idle: "Ready for a public conference agenda",
-  fetching: "Fetching public agenda",
-  extracting: "Extracting speakers and sessions",
-  scoring: "Scoring ICP fit",
-  sequencing: "Building event-relative outreach",
-  complete: "Analysis complete",
-  failed: "Live analysis needs attention",
+  idle: "Ready — paste a conference link",
+  fetching: "Opening the event page",
+  extracting: "Finding speakers and talks",
+  scoring: "Scoring how well each one fits",
+  sequencing: "Writing emails timed to the event",
+  complete: "Done",
+  failed: "That didn't work",
+};
+
+/** Short names for the progress chips under the form. */
+const STEP_LABELS: Record<(typeof PIPELINE)[number], string> = {
+  fetching: "Open page",
+  extracting: "Find speakers",
+  scoring: "Score fit",
+  sequencing: "Write emails",
+  complete: "Done",
 };
 
 interface ApiResult {
@@ -85,12 +94,9 @@ export function IngestForm() {
   return (
     <section className="ingest-panel" aria-labelledby="ingest-title">
       <div className="ingest-copy">
-        <p className="eyebrow">Live conference analysis</p>
-        <h2 id="ingest-title">Conference URL in. Qualified motion out.</h2>
-        <p>
-          We inspect public agenda markup, preserve source provenance, and explain every point in
-          the ranking.
-        </p>
+        <p className="eyebrow">Analyze an event</p>
+        <h2 id="ingest-title">Paste a conference link</h2>
+        <p>We read the public speaker list and score everyone against your ICP.</p>
       </div>
 
       <form onSubmit={submit}>
@@ -122,15 +128,17 @@ export function IngestForm() {
       </div>
 
       {busy ? (
-        <ol className="pipeline-steps" aria-label="Ingestion progress">
+        <ol className="pipeline-steps" aria-label="Analysis progress">
           {PIPELINE.map((step) => (
             <li className={PIPELINE.indexOf(step) <= PIPELINE.indexOf(status as (typeof PIPELINE)[number]) ? "active" : ""} key={step}>
-              {step}
+              {STEP_LABELS[step]}
             </li>
           ))}
         </ol>
       ) : null}
-      {error ? <p className="error-callout">{error} The demo remains available and is always labeled.</p> : null}
+      {error ? (
+        <p className="error-callout">{error} You can still load the demo conference — it is always labeled.</p>
+      ) : null}
     </section>
   );
 }

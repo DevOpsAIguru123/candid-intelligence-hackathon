@@ -2,10 +2,9 @@ import Link from "next/link";
 
 const navigation = [
   { label: "Overview", href: "/", marker: "01" },
-  { label: "Conferences", href: "/#conferences", marker: "02" },
-  { label: "Speakers", href: "/#signals", marker: "03" },
-  { label: "Sequences", href: "/#sequences", marker: "04" },
-  { label: "Funnel", href: "/funnel", marker: "05" },
+  { label: "Calendar", href: "/calendar", marker: "02" },
+  { label: "My plan", href: "/plan", marker: "03" },
+  { label: "Progress", href: "/funnel", marker: "04" },
 ];
 
 export function Sidebar() {
@@ -17,7 +16,7 @@ export function Sidebar() {
         </span>
         <span>
           <strong>SPEAKER SIGNAL</strong>
-          <small>ORIGINATION INTELLIGENCE</small>
+          <small>FIND THE RIGHT PEOPLE</small>
         </span>
       </Link>
 
@@ -33,8 +32,8 @@ export function Sidebar() {
       <div className="sidebar-status">
         <span className="live-dot" aria-hidden="true" />
         <span>
-          <strong>Signal engine online</strong>
-          <small>Public sources only</small>
+          <strong>Running</strong>
+          <small>Public event websites only</small>
         </span>
       </div>
     </aside>

@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "dev": "node --no-warnings ./node_modules/next/dist/bin/next dev",
     "build": "node --no-warnings ./node_modules/next/dist/bin/next build",

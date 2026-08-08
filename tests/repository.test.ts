@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { getDemoConference } from "@/data/demo-conference";
-import { createRepository } from "@/lib/repository";
+import { createRepository, resolveDatabasePath } from "@/lib/repository";
 
 describe("SpeakerSignalRepository", () => {
   it("replaces one conference graph atomically and reads its relationships", () => {
@@ -37,5 +37,20 @@ describe("SpeakerSignalRepository", () => {
     expect(() => repository.advanceSpeaker(identifiedOnly.id, "replied")).toThrow(/next stage/i);
     const event = repository.advanceSpeaker(identifiedOnly.id, "qualified");
     expect(event.stage).toBe("qualified");
+  });
+});
+
+describe("resolveDatabasePath", () => {
+  it("keeps the repository-relative default outside serverless runtimes", () => {
+    expect(resolveDatabasePath({})).toBe("data/speaker-signal.db");
+  });
+
+  it("falls back to the only writable directory on Vercel", () => {
+    expect(resolveDatabasePath({ VERCEL: "1" })).toBe("/tmp/speaker-signal.db");
+  });
+
+  it("prefers an explicit DATABASE_PATH over every default", () => {
+    expect(resolveDatabasePath({ VERCEL: "1", DATABASE_PATH: "/tmp/custom.db" })).toBe("/tmp/custom.db");
+    expect(resolveDatabasePath({ DATABASE_PATH: "  " })).toBe("data/speaker-signal.db");
   });
 });
