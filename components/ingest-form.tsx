@@ -63,7 +63,7 @@ export function IngestForm() {
     }, 420);
   }
 
-  async function run(payload: { url?: string; useDemo?: boolean }) {
+  async function run(payload: { url: string }) {
     beginProgress();
     try {
       const response = await fetch("/api/ingest", {
@@ -121,10 +121,6 @@ export function IngestForm() {
           <span className="live-dot" aria-hidden="true" />
           {LABELS[status]}
         </div>
-        <span>or</span>
-        <button className="text-button" disabled={busy} onClick={() => void run({ useDemo: true })} type="button">
-          Load demo conference
-        </button>
       </div>
 
       {busy ? (
@@ -136,9 +132,7 @@ export function IngestForm() {
           ))}
         </ol>
       ) : null}
-      {error ? (
-        <p className="error-callout">{error} You can still load the demo conference — it is always labeled.</p>
-      ) : null}
+      {error ? <p className="error-callout">{error}</p> : null}
     </section>
   );
 }

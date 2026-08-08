@@ -5,7 +5,7 @@ import { AttendanceControl, DraftApproval } from "@/components/plan-controls";
 import { ScoreBadge } from "@/components/score-badge";
 import { ATTENDANCE_LABELS, summarizePlan, type ApprovalStatus } from "@/lib/planning";
 import { getPlanningRepository } from "@/lib/planning-repository";
-import { getRepository } from "@/lib/repository";
+import { getRepository } from "@/lib/conference-repository";
 
 export const dynamic = "force-dynamic";
 
@@ -15,20 +15,23 @@ function formatDate(value: string): string {
   );
 }
 
-export default function PlanPage() {
+export default async function PlanPage() {
   const repository = getRepository();
   const planning = getPlanningRepository();
 
-  const conferences = repository.listConferences();
+  const conferences = await repository.listConferences();
   const meetList = planning.listMeetList();
   const attendance = planning.listAttendance();
   const approvals = planning.listApprovals();
   const approvalByStep = new Map(approvals.map((approval) => [approval.stepId, approval]));
 
-  const speakersById = new Map(repository.listSpeakers().map((speaker) => [speaker.id, speaker]));
-  const drafts = [...speakersById.keys()].flatMap((speakerId) =>
-    repository.listSequence(speakerId).map((step) => ({ step, speakerId })),
+  const speakersById = new Map((await repository.listSpeakers()).map((speaker) => [speaker.id, speaker]));
+  const sequenceLists = await Promise.all(
+    [...speakersById.keys()].map(async (speakerId) =>
+      (await repository.listSequence(speakerId)).map((step) => ({ step, speakerId })),
+    ),
   );
+  const drafts = sequenceLists.flat();
   const summary = summarizePlan({
     attendance,
     meetList,

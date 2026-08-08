@@ -2,7 +2,7 @@
 
 Speaker Signal is a working Track 2 prototype for the Candid Intelligence Houston Energy + AI Hackathon. Give it one public conference agenda URL and it produces a ranked speaker list, explainable ICP scores, a "Why Now?" brief, conference-relative outreach drafts, and an eight-stage GTM funnel.
 
-The demo is safe by design: live ingestion is attempted only for public HTTP(S) pages, failures never overwrite existing data, and the bundled fictional conference is always labeled **DEMO DATA**. The application drafts outreach but never sends it.
+The application reads live conference records only — there is no sample dataset it can show. Ingestion is attempted only for public HTTP(S) pages, a failed fetch never overwrites existing data, and outreach is drafted but never sent.
 
 ## Run locally
 
@@ -46,7 +46,7 @@ Set `FIRECRAWL_API_KEY` in **Project Settings → Environment Variables** if you
 ## Demo path
 
 1. Open the overview.
-2. Click **Load demo conference** for a deterministic presentation, or paste a public agenda URL and click **Analyze conference**.
+2. Paste a public agenda URL and click **Analyze conference**, or use an event already in the database.
 3. Open **Calendar** and show the watchlist: every recurring series counting down on its own clock, projected dates before an agenda exists, and the ingested agenda promoted to a confirmed date with ranked speakers.
 4. On the ranked conference page, explain why the top speaker scores 100.
 5. Open their signal brief and show the grounded Why Now recommendation.

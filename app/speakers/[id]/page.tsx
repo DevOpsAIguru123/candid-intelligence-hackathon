@@ -19,7 +19,7 @@ import {
   isSponsorSlot,
   primarySession,
 } from "@/lib/sessions";
-import { getRepository } from "@/lib/repository";
+import { getRepository } from "@/lib/conference-repository";
 import { buildWhyNow } from "@/lib/sequence";
 
 export const dynamic = "force-dynamic";
@@ -44,13 +44,15 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default async function SpeakerPage({ params }: { params: Promise<{ id: string }> }) {
+  // Next hands back the raw path segment, so ids containing ":" arrive
+  // percent-encoded. Real speaker ids look like "<conference>:speaker:83300".
   const { id } = await params;
   const repository = getRepository();
-  const speaker = repository.getSpeaker(id);
+  const speaker = await repository.getSpeaker(decodeURIComponent(id));
   if (!speaker) notFound();
-  const conference = repository.getConference(speaker.conferenceId);
+  const conference = await repository.getConference(speaker.conferenceId);
   if (!conference) notFound();
-  const sequence = repository.listSequence(speaker.id);
+  const sequence = await repository.listSequence(speaker.id);
   const whyNow = buildWhyNow(speaker, conference);
   const session = primarySession(speaker.sessions);
 
@@ -60,8 +62,7 @@ export default async function SpeakerPage({ params }: { params: Promise<{ id: st
     planning.listApprovals(speaker.id).map((approval) => [approval.stepId, approval]),
   );
 
-  const reached = repository
-    .listFunnelEvents()
+  const reached = (await repository.listFunnelEvents())
     .filter((event) => event.speakerId === speaker.id)
     .reduce<FunnelStage | null>(
       (latest, event) =>

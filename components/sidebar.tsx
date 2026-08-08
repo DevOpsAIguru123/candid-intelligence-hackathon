@@ -20,9 +20,12 @@ export function Sidebar() {
         </span>
       </Link>
 
+      {/* Prefetch is off deliberately: these pages show data the user is
+          actively changing, and a payload fetched on page load would show a
+          stale plan or funnel right after a decision is saved. */}
       <nav aria-label="Primary navigation">
         {navigation.map((item) => (
-          <Link href={item.href} key={item.label}>
+          <Link href={item.href} key={item.label} prefetch={false}>
             <span aria-hidden="true">{item.marker}</span>
             {item.label}
           </Link>

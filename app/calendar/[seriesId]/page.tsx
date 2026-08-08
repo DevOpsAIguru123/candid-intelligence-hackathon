@@ -23,8 +23,9 @@ function formatWindow(startsAt: string, endsAt: string): string {
  * becoming a second version of the same screen.
  */
 export default async function SeriesPage({ params }: { params: Promise<{ seriesId: string }> }) {
-  const { seriesId } = await params;
-  const entry = readCalendar().entries.find(
+  const { seriesId: rawSeriesId } = await params;
+  const seriesId = decodeURIComponent(rawSeriesId);
+  const entry = (await readCalendar()).entries.find(
     (candidate) => candidate.seriesId === seriesId || candidate.key === seriesId,
   );
   if (!entry) notFound();

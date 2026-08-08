@@ -9,17 +9,18 @@ import { nextFunnelStage } from "@/lib/funnel";
 import { STAGE_LABELS } from "@/lib/planning";
 import { cleanTrack, formatCoverage, formatSessionWhen, isSponsorSlot, primarySession } from "@/lib/sessions";
 import { getPlanningRepository } from "@/lib/planning-repository";
-import { getRepository } from "@/lib/repository";
+import { getRepository } from "@/lib/conference-repository";
 import { formatSourceMode } from "@/lib/source-mode";
 
 export const dynamic = "force-dynamic";
 
 export default async function ConferencePage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+  const { id: rawId } = await params;
+  const id = decodeURIComponent(rawId);
   const repository = getRepository();
-  const conference = repository.getConference(id);
+  const conference = await repository.getConference(id);
   if (!conference) notFound();
-  const speakers = repository.listSpeakers(id);
+  const speakers = await repository.listSpeakers(id);
   const qualified = speakers.filter((speaker) => speaker.score >= 60).length;
 
   const planning = getPlanningRepository();
@@ -29,7 +30,7 @@ export default async function ConferencePage({ params }: { params: Promise<{ id:
   // Furthest step each speaker has reached, so the table can show progress and
   // offer the one next step without opening the profile.
   const reachedBySpeaker = new Map<string, FunnelStage>();
-  for (const event of repository.listFunnelEvents()) {
+  for (const event of await repository.listFunnelEvents()) {
     const current = reachedBySpeaker.get(event.speakerId);
     if (!current || FUNNEL_STAGES.indexOf(event.stage) > FUNNEL_STAGES.indexOf(current)) {
       reachedBySpeaker.set(event.speakerId, event.stage);

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { getPlanningRepository } from "@/lib/planning-repository";
-import { getRepository } from "@/lib/repository";
+import { getRepository } from "@/lib/conference-repository";
 
 export const runtime = "nodejs";
 
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
 
     case "advance-stage":
       try {
-        const event = getRepository().advanceSpeaker(
+        const event = await getRepository().advanceSpeaker(
           input.speakerId,
           input.stage as Parameters<ReturnType<typeof getRepository>["advanceSpeaker"]>[1],
         );

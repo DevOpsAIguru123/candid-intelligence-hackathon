@@ -6,8 +6,8 @@ import { readCalendar } from "@/lib/calendar-feed";
 
 export const dynamic = "force-dynamic";
 
-export default function CalendarPage() {
-  const payload = readCalendar();
+export default async function CalendarPage() {
+  const payload = await readCalendar();
   const { summary } = payload;
   const nextEvent = summary.nextEvent;
 

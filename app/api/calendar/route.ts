@@ -6,5 +6,5 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  return NextResponse.json(readCalendar(), { headers: { "cache-control": "no-store" } });
+  return NextResponse.json(await readCalendar(), { headers: { "cache-control": "no-store" } });
 }

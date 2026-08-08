@@ -5,7 +5,7 @@ import { ScoreBadge } from "@/components/score-badge";
 import type { Conference } from "@/lib/domain";
 import { buildWhyNow } from "@/lib/sequence";
 import { getPlanningRepository } from "@/lib/planning-repository";
-import { getRepository } from "@/lib/repository";
+import { getRepository } from "@/lib/conference-repository";
 
 export const dynamic = "force-dynamic";
 
@@ -20,12 +20,12 @@ function pickNextConference(conferences: Conference[]): Conference | undefined {
  * on the page that owns it — events on the calendar, people on the event page,
  * decisions on the plan, outcomes on progress — so nothing is repeated here.
  */
-export default function OverviewPage() {
+export default async function OverviewPage() {
   const repository = getRepository();
   const planning = getPlanningRepository();
 
-  const nextConference = pickNextConference(repository.listConferences());
-  const topSpeaker = nextConference ? repository.listSpeakers(nextConference.id)[0] : undefined;
+  const nextConference = pickNextConference(await repository.listConferences());
+  const topSpeaker = nextConference ? (await repository.listSpeakers(nextConference.id))[0] : undefined;
   const whyNow = topSpeaker && nextConference ? buildWhyNow(topSpeaker, nextConference) : null;
 
   const meetCount = planning.listMeetList().length;
@@ -35,10 +35,9 @@ export default function OverviewPage() {
       .filter((approval) => approval.status !== "pending")
       .map((approval) => approval.stepId),
   );
-  const awaiting = repository
-    .listSpeakers()
-    .flatMap((speaker) => repository.listSequence(speaker.id))
-    .filter((step) => !decided.has(step.id)).length;
+  const allSpeakers = await repository.listSpeakers();
+  const sequences = await Promise.all(allSpeakers.map((speaker) => repository.listSequence(speaker.id)));
+  const awaiting = sequences.flat().filter((step) => !decided.has(step.id)).length;
 
   return (
     <div className="page-stack">
@@ -71,7 +70,7 @@ export default function OverviewPage() {
           <span>01</span>
           <div>
             <h2>Nothing analyzed yet.</h2>
-            <p>Paste a conference link, or load the demo conference, to see the whole flow end to end.</p>
+            <p>Paste a public conference link above to pull in its speakers and score them.</p>
           </div>
         </section>
       )}

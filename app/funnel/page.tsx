@@ -1,12 +1,12 @@
 import { FunnelChart } from "@/components/funnel-chart";
 import { calculateFunnel } from "@/lib/funnel";
-import { getRepository } from "@/lib/repository";
+import { getRepository } from "@/lib/conference-repository";
 
 export const dynamic = "force-dynamic";
 
 // The chart already prints every count, so this page carries no metric cards.
-export default function FunnelPage() {
-  const metrics = calculateFunnel(getRepository().listFunnelEvents());
+export default async function FunnelPage() {
+  const metrics = calculateFunnel(await getRepository().listFunnelEvents());
 
   return (
     <div className="page-stack">
