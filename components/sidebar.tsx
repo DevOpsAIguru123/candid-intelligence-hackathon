@@ -2,9 +2,9 @@ import Link from "next/link";
 
 const navigation = [
   { label: "Overview", href: "/", marker: "01" },
-  { label: "Conferences", href: "/#conferences", marker: "02" },
-  { label: "Speakers", href: "/#signals", marker: "03" },
-  { label: "Sequences", href: "/#sequences", marker: "04" },
+  { label: "Conferences", href: "/conferences", marker: "02" },
+  { label: "Speakers", href: "/speakers", marker: "03" },
+  { label: "Sequences", href: "/sequences", marker: "04" },
   { label: "Funnel", href: "/funnel", marker: "05" },
 ];
 

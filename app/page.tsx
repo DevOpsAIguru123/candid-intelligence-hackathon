@@ -15,13 +15,13 @@ function formatDate(value: string): string {
   );
 }
 
-export default function OverviewPage() {
+export default async function OverviewPage() {
   const repository = getRepository();
-  const conferences = repository.listConferences();
-  const speakers = repository.listSpeakers();
-  const events = repository.listFunnelEvents();
+  const conferences = await repository.listConferences();
+  const speakers = await repository.listSpeakers();
+  const events = await repository.listFunnelEvents();
   const topSpeaker = speakers[0];
-  const topConference = topSpeaker ? repository.getConference(topSpeaker.conferenceId) : null;
+  const topConference = topSpeaker ? await repository.getConference(topSpeaker.conferenceId) : null;
   const whyNow = topSpeaker && topConference ? buildWhyNow(topSpeaker, topConference) : null;
   const qualified = speakers.filter((speaker) => speaker.score >= 60).length;
   const highPriority = speakers.filter((speaker) => speaker.score >= 80).length;
@@ -67,7 +67,7 @@ export default function OverviewPage() {
               <span>Recommended</span>
               <strong>{whyNow.action}</strong>
             </div>
-            <Link className="primary-link" href={`/speakers/${topSpeaker.id}`}>
+            <Link className="primary-link" href={`/speakers/${encodeURIComponent(topSpeaker.id)}`}>
               Open signal brief →
             </Link>
           </article>
@@ -83,7 +83,7 @@ export default function OverviewPage() {
             <h2>{topConference.name}</h2>
             <p>{topConference.location}</p>
             <div className="conference-stat-row">
-              <strong>{repository.listSpeakers(topConference.id).length}</strong>
+              <strong>{(await repository.listSpeakers(topConference.id)).length}</strong>
               <span>speakers ranked</span>
             </div>
             <Link className="secondary-link" href={`/conferences/${topConference.id}`}>

@@ -28,7 +28,7 @@ export async function POST(request: Request) {
   const repository = getRepository();
   if (parsed.data.useDemo) {
     const graph = getDemoConference();
-    repository.replaceConference(graph);
+    await repository.replaceConference(graph);
     return NextResponse.json({ success: true, ...graph });
   }
 
@@ -39,6 +39,6 @@ export async function POST(request: Request) {
     });
   }
 
-  repository.replaceConference(result);
+  await repository.replaceConference(result);
   return NextResponse.json(result);
 }

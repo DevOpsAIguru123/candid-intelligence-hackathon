@@ -11,9 +11,9 @@ export const dynamic = "force-dynamic";
 export default async function ConferencePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const repository = getRepository();
-  const conference = repository.getConference(id);
+  const conference = await repository.getConference(id);
   if (!conference) notFound();
-  const speakers = repository.listSpeakers(id);
+  const speakers = await repository.listSpeakers(id);
   const qualified = speakers.filter((speaker) => speaker.score >= 60).length;
   const high = speakers.filter((speaker) => speaker.score >= 80).length;
 
@@ -61,6 +61,7 @@ export default async function ConferencePage({ params }: { params: Promise<{ id:
                 <th>Score</th>
                 <th>Speaker</th>
                 <th>Company</th>
+                <th>Contact</th>
                 <th>Session signal</th>
                 <th><span className="sr-only">Open</span></th>
               </tr>
@@ -71,9 +72,10 @@ export default async function ConferencePage({ params }: { params: Promise<{ id:
                   <td><ScoreBadge score={speaker.score} /></td>
                   <td><strong>{speaker.name}</strong><small>{speaker.title}</small></td>
                   <td>{speaker.company}</td>
+                  <td><small style={{ color: '#38bdf8' }}>{speaker.email || "N/A"}</small></td>
                   <td>{speaker.sessionTitle || "Session not published"}</td>
                   <td>
-                    <Link aria-label={`View ${speaker.name}`} className="row-link" href={`/speakers/${speaker.id}`}>
+                    <Link aria-label={`View ${speaker.name}`} className="row-link" href={`/speakers/${encodeURIComponent(speaker.id)}`}>
                       →
                     </Link>
                   </td>
