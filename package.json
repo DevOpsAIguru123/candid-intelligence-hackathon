@@ -12,11 +12,17 @@
     "lint": "eslint .",
     "test": "node --no-warnings ./node_modules/vitest/vitest.mjs run",
     "test:watch": "node --no-warnings ./node_modules/vitest/vitest.mjs",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate-postgres.mjs",
+    "dcwp:ingest": "node --env-file-if-exists=.env.local --import tsx scripts/ingest-dcwp.ts",
+    "research:claim": "node --env-file-if-exists=.env.local --import tsx scripts/claim-research-task.ts",
+    "research:complete": "node --env-file-if-exists=.env.local --import tsx scripts/complete-research-task.ts"
   },
   "dependencies": {
     "cheerio": "^1.2.0",
+    "csv-parse": "^7.0.2",
     "next": "^16.3.0",
+    "postgres": "^3.4.9",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "zod": "^4.4.3"
@@ -32,6 +38,7 @@
     "eslint": "^9.39.1",
     "eslint-config-next": "^16.3.0",
     "jsdom": "^30.0.1",
+    "tsx": "^4.23.11",
     "typescript": "^5.9.3",
     "vitest": "^4.1.10"
   }

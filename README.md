@@ -18,8 +18,11 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-The SQLite database defaults to `data/speaker-signal.db`. To use another location, copy `.env.example` to `.env.local` and change `DATABASE_PATH`.
+### Persistence Configuration
 
+The conference adapter workflows support both PostgreSQL/Supabase and SQLite repositories:
+- When `DATABASE_URL` is set in `.env.local` (e.g. `DATABASE_URL=postgresql://...`), the DCWP ingestion and research-task scripts persist to PostgreSQL/Supabase. Run `pnpm db:migrate` before live ingestion to apply the schema.
+- When `DATABASE_URL` is absent or empty, those scripts fall back locally to SQLite (`data/speaker-signal.db` or custom `DATABASE_PATH`).
 To enable rendered fallback for blocked or JavaScript-only conference pages, add a server-side Firecrawl key to `.env.local`:
 
 ```bash
@@ -64,11 +67,60 @@ Conference URL
   -> speaker normalization and conservative deduplication
   -> deterministic ICP scoring
   -> event-relative outreach drafts
-  -> atomic SQLite persistence
-  -> overview, conference, speaker, and funnel views
+  -> atomic PostgreSQL / SQLite workflow persistence
+  -> agent-claimable research queue and evidence outputs
 ```
 
-The app uses a single Next.js TypeScript codebase. Domain modules in `lib/` do not depend on React, and the SQLite repository is the boundary between ingestion and presentation.
+The adapter and research workflows live in `lib/adapters/`, use an async `ConferenceRepository`, and select PostgreSQL when `DATABASE_URL` is set or SQLite otherwise. They are intentionally isolated from the existing Next.js presentation repository so display work can integrate independently.
+
+The platform supports automated conference live ingestion and agent-claimable research tasks. Each research marker represents one content session or presentation (e.g. Keynote, Session, Workshop, Solutions Spotlight, Tech Talk).
+
+### 1. Live Conference Ingestion
+
+Ingest a live conference agenda (such as Data Center World Power) into the configured workflow repository:
+
+```bash
+pnpm dcwp:ingest
+```
+
+This command fetches the live conference graph, normalizes sessions and speakers, generates research markers, persists the output, and prints a JSON coverage summary. The DCWP live adapter exhausts 2 session pages, 3 speaker fragments, and the required CSV agenda file, failing closed on any coverage or pagination mismatch.
+
+### 2. Claim Research Task
+
+Autonomous research agents claim pending tasks atomically (`FOR UPDATE SKIP LOCKED` on PostgreSQL/Supabase):
+
+```bash
+pnpm research:claim --agent agent-worker-1 [--conference data-center-world-power-2026-09-21]
+```
+
+If a pending task is available, it is marked `in_progress` by `agent-worker-1` and prints the session target URL, title, priority, and instructions as JSON.
+
+### 3. Complete Research Task
+
+Agents submit completed research findings by passing their agent ID, task ID, and a JSON output payload file:
+
+```bash
+pnpm research:complete --agent agent-worker-1 --task task-123 --output ./findings.json
+```
+
+The command validates the versioned research contract, transitions the task status to `complete`, stores the output, and returns the completion result as JSON. Every finding needs a category, precise attribution, an HTTP(S) evidence URL, and a verbatim source quote; unsupported requested facts belong in `unknowns`.
+
+```json
+{
+  "schemaVersion": "1.0",
+  "summary": "Evidence-backed summary of the session and speaker research.",
+  "findings": [
+    {
+      "category": "capacity",
+      "statement": "The source reports a 1 GW demand-response commitment.",
+      "attribution": "Named author and official source",
+      "evidenceUrl": "https://example.com/official-source",
+      "evidenceQuote": "Exact supporting source text."
+    }
+  ],
+  "unknowns": ["No supported kV figure was found."]
+}
+```
 
 ## Conference calendar
 
