@@ -17,13 +17,13 @@ describe("live ingestion", () => {
     expect(result.speakers.length).toBeGreaterThan(0);
 
     const repo = getRepository();
-    repo.replaceConference(result);
+    await repo.replaceConference(result);
 
-    const savedConf = repo.getConference(result.conference.id);
+    const savedConf = await repo.getConference(result.conference.id);
     expect(savedConf).not.toBeNull();
     expect(savedConf?.sourceMode).toBe("firecrawl");
 
-    const savedSpeakers = repo.listSpeakers(result.conference.id);
+    const savedSpeakers = await repo.listSpeakers(result.conference.id);
     expect(savedSpeakers.length).toBeGreaterThan(0);
     console.log(`Successfully ingested and saved ${savedSpeakers.length} live speakers for ${result.conference.name}!`);
   }, 40_000);

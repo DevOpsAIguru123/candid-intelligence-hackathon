@@ -16,14 +16,14 @@ import { nextFunnelStage } from "@/lib/funnel";
 type SqlRow = Record<string, string | number | bigint | null>;
 
 export interface SpeakerSignalRepository {
-  replaceConference(graph: ConferenceGraph): void;
-  listConferences(): Conference[];
-  getConference(id: string): Conference | null;
-  getSpeaker(id: string): Speaker | null;
-  listSpeakers(conferenceId?: string): Speaker[];
-  listSequence(speakerId: string): SequenceStep[];
-  listFunnelEvents(): FunnelEvent[];
-  advanceSpeaker(speakerId: string, targetStage: FunnelStage): FunnelEvent;
+  replaceConference(graph: ConferenceGraph): void | Promise<void>;
+  listConferences(): Conference[] | Promise<Conference[]>;
+  getConference(id: string): Conference | null | Promise<Conference | null>;
+  getSpeaker(id: string): Speaker | null | Promise<Speaker | null>;
+  listSpeakers(conferenceId?: string): Speaker[] | Promise<Speaker[]>;
+  listSequence(speakerId: string): SequenceStep[] | Promise<SequenceStep[]>;
+  listFunnelEvents(): FunnelEvent[] | Promise<FunnelEvent[]>;
+  advanceSpeaker(speakerId: string, targetStage: FunnelStage): FunnelEvent | Promise<FunnelEvent>;
 }
 
 function mapConference(row: SqlRow): Conference {

@@ -12,7 +12,7 @@ describe("OpenAI Signal Identification Script", () => {
     }
 
     const repo = getRepository();
-    const conferences = repo.listConferences();
+    const conferences = await repo.listConferences();
 
     if (conferences.length === 0) {
       console.log("No conferences in database. Ingest a conference first.");
@@ -20,7 +20,7 @@ describe("OpenAI Signal Identification Script", () => {
     }
 
     const conference = conferences[0];
-    const speakers = repo.listSpeakers(conference.id);
+    const speakers = await repo.listSpeakers(conference.id);
 
     console.log(`\n==================================================`);
     console.log(`OpenAI Signal Analysis for: ${conference.name}`);
