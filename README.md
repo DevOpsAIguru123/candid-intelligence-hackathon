@@ -125,12 +125,11 @@ The command validates the versioned research contract, transitions the task stat
 
 ## Conference calendar
 
-`/calendar` is the watchlist view. It merges two sources into one ranked board, soonest event first:
+`/calendar` ranks every conference in the database, soonest first, with its extracted speaker count and top match. Rows read from a real agenda show **SPEAKERS PUBLISHED** and **dates confirmed**.
 
-- **Seeded recurring series** (`data/conference-series.ts`) — Data Center World Power, DTECH Data Centers & AI, CERAWeek, POWERGEN, Gastech, Reuters Events, and Infocast. Industry events repeat in the same annual window, so the next edition is projected from that window and appears on the board before an organizer publishes anything. Projected dates are labeled **dates expected** and are never presented as confirmed.
-- **Ingested agendas** — any conference already in the repository. It attaches to its series by name token or agenda host, flips the row to **SPEAKERS PUBLISHED** with **dates confirmed**, and shows extracted speaker counts and the top match.
+`buildCalendar` also accepts a watchlist of recurring series — events that repeat annually and can be projected before anyone reads their agenda, shown as **WATCHING** with **dates expected**. Nothing supplies that list today. It was hardcoded in the app and removed, because guessed dates for events nobody has read do not belong next to real records; when the watchlist becomes a table, it plugs straight back in.
 
-**Every row opens.** Analyzed events go to their speaker workspace; watched events with no speaker list yet get their own page showing expected dates, why they are on the watchlist, and a **Read the speaker list now** button that runs the same ingestion the overview form does. Once it succeeds the event permanently lives at `/conferences/[id]` and the watched page forwards there.
+**Every row opens.** Analyzed events go to their speaker workspace. A watched event with no speaker list gets its own page with a **Read the speaker list now** button that runs the same ingestion the overview form does; once it succeeds the event lives at `/conferences/[id]` and the watched page forwards there.
 
 Inside an event, the speaker table is the workspace: fit score, name, title, company, talk, current follow-up step, and per-row controls to add someone to your meet list or move them one step forward. Filter by *Everyone / Worth contacting / On my list* and search by name, company, or talk — real agendas run to hundreds of speakers. The full profile (why now, score evidence, drafts) stays one click away rather than being duplicated in the table.
 
