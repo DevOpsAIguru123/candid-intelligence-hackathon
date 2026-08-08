@@ -390,8 +390,9 @@ export class SupabaseSpeakerSignalRepository implements SpeakerSignalRepository 
   private pool: Pool;
 
   constructor(connectionString: string) {
+    const cleanedUrl = connectionString.trim().replace(/^["']|["']$/g, "");
     this.pool = new Pool({
-      connectionString,
+      connectionString: cleanedUrl,
       ssl: { rejectUnauthorized: false },
       max: 10,
     });

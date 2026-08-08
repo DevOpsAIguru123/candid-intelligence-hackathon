@@ -5,7 +5,7 @@ metadata:
   labels:
     app: speaker-signal-app
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: speaker-signal-app
