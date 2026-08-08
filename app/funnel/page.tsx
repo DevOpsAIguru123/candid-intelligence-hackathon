@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 export default async function FunnelPage() {
   const metrics = calculateFunnel(await getRepository().listFunnelEvents());
 
+
   return (
     <div className="page-stack">
       <header className="page-header">

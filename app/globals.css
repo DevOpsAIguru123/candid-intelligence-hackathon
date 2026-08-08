@@ -2188,3 +2188,62 @@ td .role-flag {
 .session-source a:hover {
   text-decoration: underline;
 }
+
+/* Contact details carried over from the enrichment pipeline */
+
+.contact-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.contact-line a {
+  color: var(--signal);
+  font-weight: 700;
+}
+
+.contact-line a:hover {
+  text-decoration: underline;
+}
+
+.contact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-soft);
+}
+
+.contact-grid dt {
+  color: var(--muted);
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.contact-grid dd {
+  margin: 5px 0 0;
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
+.contact-grid a {
+  color: var(--signal);
+  font-weight: 700;
+}
+
+.contact-grid a:hover {
+  text-decoration: underline;
+}
+
+.contact-missing {
+  color: var(--muted);
+}

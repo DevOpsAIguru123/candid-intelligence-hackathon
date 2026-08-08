@@ -76,6 +76,10 @@ export interface Speaker {
   dedupeKey: string;
   /** Populated once the agenda source exposes sessions; absent otherwise. */
   sessions?: SpeakerSession[];
+  email?: string;
+  phone?: string;
+  linkedinUrl?: string;
+  companyDomain?: string;
 }
 
 export interface SpeakerCandidate {
@@ -83,6 +87,11 @@ export interface SpeakerCandidate {
   title: string;
   company: string;
   sessionTitle: string;
+  profileUrl?: string;
+  email?: string;
+  phone?: string;
+  linkedinUrl?: string;
+  companyDomain?: string;
 }
 
 export interface ConferenceCandidate {

@@ -44,6 +44,7 @@ export default async function OverviewPage() {
   const meetCount = meetList.length;
   const awaiting = sequences.flat().filter((step) => !decided.has(step.id)).length;
 
+
   return (
     <div className="page-stack">
       <header className="page-header">
@@ -69,6 +70,7 @@ export default async function OverviewPage() {
             </Link>
           </div>
           <ScoreBadge score={topSpeaker.score} />
+
         </section>
       ) : (
         <section className="empty-state">

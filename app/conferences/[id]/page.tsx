@@ -102,6 +102,7 @@ export default async function ConferencePage({ params }: { params: Promise<{ id:
             <h2>Speakers</h2>
           </div>
           <span className="table-count">{speakers.length} people</span>
+
         </div>
         <SpeakerTable conferenceId={conference.id} speakers={rows} />
       </section>

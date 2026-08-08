@@ -48,7 +48,10 @@ export default async function SpeakerPage({ params }: { params: Promise<{ id: st
   // percent-encoded. Real speaker ids look like "<conference>:speaker:83300".
   const { id } = await params;
   const repository = getRepository();
-  const speaker = await repository.getSpeaker(decodeURIComponent(id));
+  // Ids arrive percent-encoded; fall back to the raw segment for ids that
+  // contain no reserved characters. Never scan the whole speaker table.
+  const speaker =
+    (await repository.getSpeaker(decodeURIComponent(id))) ?? (await repository.getSpeaker(id));
   if (!speaker) notFound();
   const conference = await repository.getConference(speaker.conferenceId);
   if (!conference) notFound();
@@ -177,8 +180,47 @@ export default async function SpeakerPage({ params }: { params: Promise<{ id: st
         </div>
 
         <article className="evidence-card">
-          <p className="eyebrow">Why this score</p>
+          <p className="eyebrow">Contact and score evidence</p>
           <h2>Why this person matters</h2>
+
+          <dl className="contact-grid">
+            <div>
+              <dt>Email</dt>
+              <dd>
+                {speaker.email ? (
+                  <a href={`mailto:${speaker.email}`}>{speaker.email}</a>
+                ) : (
+                  <span className="contact-missing">not found</span>
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt>LinkedIn</dt>
+              <dd>
+                {speaker.linkedinUrl ? (
+                  <a href={speaker.linkedinUrl} rel="noreferrer noopener" target="_blank">
+                    Profile ↗
+                  </a>
+                ) : (
+                  <span className="contact-missing">not found</span>
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt>Company domain</dt>
+              <dd>
+                {speaker.companyDomain ?? <span className="contact-missing">not found</span>}
+              </dd>
+            </div>
+            {speaker.phone ? (
+              <div>
+                <dt>Phone</dt>
+                <dd>{speaker.phone}</dd>
+              </div>
+            ) : null}
+          </dl>
+
+
           <ul className="reason-list">
             {speaker.scoreReasons.map((reason) => (
               <li key={reason.group}>

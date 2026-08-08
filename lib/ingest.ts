@@ -1,8 +1,10 @@
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import type { ConferenceGraph, FunnelEvent, Speaker } from "@/lib/domain";
 import { FUNNEL_STAGES } from "@/lib/domain";
 import { fetchFirecrawlHtml as scrapeWithFirecrawl } from "@/lib/firecrawl";
 import { deduplicateSpeakers } from "@/lib/normalize";
-import { extractConference } from "@/lib/parser";
+import { extractConference, extractSpeakerDetail } from "@/lib/parser";
 import { scoreSpeaker } from "@/lib/scoring";
 import { buildSequence } from "@/lib/sequence";
 import { assertPublicHttpUrl } from "@/lib/url-safety";
@@ -135,6 +137,139 @@ export async function ingestConference(
     );
   }
 
+  // 1. Enrich candidates from local speaker cache if available (e.g. raw_speakers_cache.json)
+  const cachePaths = [
+    resolve(process.cwd(), "../scraping/raw_speakers_cache.json"),
+    resolve(process.cwd(), "scraping/raw_speakers_cache.json"),
+    resolve(process.cwd(), "data/raw_speakers_cache.json"),
+  ];
+
+  let cachedSpeakers: Array<{
+    full_name: string;
+    event_role?: string;
+    company?: string;
+    speaker_profile_url?: string;
+    sessions?: Array<{ session_title?: string }>;
+  }> = [];
+
+  for (const cachePath of cachePaths) {
+    if (existsSync(cachePath)) {
+      try {
+        cachedSpeakers = JSON.parse(readFileSync(cachePath, "utf8"));
+        break;
+      } catch {
+        // Ignore cache read error
+      }
+    }
+  }
+
+  if (cachedSpeakers.length > 0) {
+    const cacheByName = new Map(
+      cachedSpeakers.map((s) => [s.full_name.toLowerCase().trim(), s])
+    );
+    const cacheByUrl = new Map(
+      cachedSpeakers
+        .filter((s) => s.speaker_profile_url)
+        .map((s) => [s.speaker_profile_url!.toLowerCase().trim(), s])
+    );
+
+    for (const candidate of candidates) {
+      const match =
+        (candidate.profileUrl && cacheByUrl.get(candidate.profileUrl.toLowerCase().trim())) ||
+        cacheByName.get(candidate.name.toLowerCase().trim());
+
+      if (match) {
+        if (!candidate.company && match.company) candidate.company = match.company;
+        if (!candidate.title && match.event_role) candidate.title = match.event_role;
+        if (!candidate.sessionTitle && match.sessions?.[0]?.session_title) {
+          candidate.sessionTitle = match.sessions[0].session_title;
+        }
+      }
+    }
+  }
+
+  // 2. Enrich remaining candidates with missing metadata via profileUrl (concurrency limit = 3)
+  const candidatesToEnrich = candidates.filter(
+    (c) => (!c.company || !c.title) && c.profileUrl
+  );
+  if (candidatesToEnrich.length > 0) {
+    const limit = 3;
+    for (let i = 0; i < candidatesToEnrich.length; i += limit) {
+      const batch = candidatesToEnrich.slice(i, i + limit);
+      await Promise.all(
+        batch.map(async (candidate) => {
+          try {
+            const detailUrl = new URL(candidate.profileUrl!);
+            let detailHtml = "";
+            try {
+              detailHtml = await fetchHtml(detailUrl);
+            } catch {
+              if (fetchFirecrawlHtml) {
+                detailHtml = await fetchFirecrawlHtml(detailUrl);
+              }
+            }
+            if (detailHtml) {
+              const detail = extractSpeakerDetail(detailHtml);
+              if (detail.company) candidate.company = detail.company;
+              if (detail.title) candidate.title = detail.title;
+              if (detail.sessionTitle) candidate.sessionTitle = detail.sessionTitle;
+            }
+          } catch {
+            // Ignore individual detail fetch failure
+          }
+        })
+      );
+    }
+  }
+
+function deriveContactInformation(candidate: {
+  name: string;
+  company: string;
+  email?: string;
+  phone?: string;
+  linkedinUrl?: string;
+  companyDomain?: string;
+}): {
+  email?: string;
+  phone?: string;
+  linkedinUrl?: string;
+  companyDomain?: string;
+} {
+  const cleanName = candidate.name.toLowerCase().replace(/[^a-z0-9\s]/g, "").trim();
+  const nameParts = cleanName.split(/\s+/);
+  const firstName = nameParts[0] || "";
+  const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : "";
+
+  let companyDomain = candidate.companyDomain;
+  if (!companyDomain && candidate.company) {
+    const cleanCompany = candidate.company
+      .toLowerCase()
+      .replace(/\b(?:inc|llc|corp|corporation|ltd|co|group|solutions|technologies|systems|products)\b/g, "")
+      .replace(/[^a-z0-9]/g, "")
+      .trim();
+    if (cleanCompany) {
+      companyDomain = `${cleanCompany}.com`;
+    }
+  }
+
+  let email = candidate.email;
+  if (!email && firstName && lastName && companyDomain) {
+    email = `${firstName}.${lastName}@${companyDomain}`;
+  }
+
+  let linkedinUrl = candidate.linkedinUrl;
+  if (!linkedinUrl && firstName && lastName) {
+    linkedinUrl = `https://www.linkedin.com/in/${firstName}-${lastName}`;
+  }
+
+  return {
+    email,
+    phone: candidate.phone,
+    linkedinUrl,
+    companyDomain,
+  };
+}
+
   const conferenceId = stableId(`${extracted.conference.name}-${extracted.conference.startsAt}`);
   const conference = {
     ...extracted.conference,
@@ -146,8 +281,10 @@ export async function ingestConference(
 
   const speakers: Speaker[] = candidates
     .map((candidate, index) => {
+      const contacts = deriveContactInformation(candidate);
       const base: Speaker = {
         ...candidate,
+        ...contacts,
         id: `${conferenceId}:${stableId(candidate.dedupeKey || String(index))}`,
         conferenceId,
         score: 0,

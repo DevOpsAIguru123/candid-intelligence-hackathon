@@ -24,6 +24,7 @@ export async function POST(request: Request) {
   }
 
   const result = await ingestConference({ url: parsed.data.url });
+
   if (!result.success) {
     return NextResponse.json(result, {
       status: result.errorCode === "FETCH_FAILED" ? 502 : 422,
@@ -31,5 +32,6 @@ export async function POST(request: Request) {
   }
 
   await getRepository().replaceConference(result);
+
   return NextResponse.json(result);
 }
