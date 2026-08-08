@@ -5,8 +5,9 @@ import { getRepository } from "@/lib/repository";
 
 export const dynamic = "force-dynamic";
 
-export default function FunnelPage() {
-  const metrics = calculateFunnel(getRepository().listFunnelEvents());
+export default async function FunnelPage() {
+  const events = await getRepository().listFunnelEvents();
+  const metrics = calculateFunnel(events);
   const entry = metrics[0]?.count ?? 0;
   const meetings = metrics.find((metric) => metric.stage === "meeting_scheduled")?.count ?? 0;
   const booked = metrics.at(-1)?.count ?? 0;

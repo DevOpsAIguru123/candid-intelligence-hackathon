@@ -14,11 +14,33 @@ function offsetLabel(offset: number): string {
 export default async function SpeakerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const repository = getRepository();
-  const speaker = repository.getSpeaker(id);
+  const rawId = id;
+  const decodedId = decodeURIComponent(id);
+  const encodedId = encodeURIComponent(id);
+
+  let speaker =
+    (await repository.getSpeaker(rawId)) ??
+    (await repository.getSpeaker(decodedId)) ??
+    (await repository.getSpeaker(encodedId));
+
+  if (!speaker) {
+    const allSpeakers = await repository.listSpeakers();
+    speaker = allSpeakers.find(
+      (s) =>
+        s.id === rawId ||
+        s.id === decodedId ||
+        s.id === encodedId ||
+        s.dedupeKey === rawId ||
+        s.dedupeKey === decodedId ||
+        s.id.endsWith(`:${rawId}`) ||
+        s.id.endsWith(`:${decodedId}`),
+    ) ?? null;
+  }
+
   if (!speaker) notFound();
-  const conference = repository.getConference(speaker.conferenceId);
+  const conference = await repository.getConference(speaker.conferenceId);
   if (!conference) notFound();
-  const sequence = repository.listSequence(speaker.id);
+  const sequence = await repository.listSequence(speaker.id);
   const whyNow = buildWhyNow(speaker, conference);
 
   return (
@@ -29,6 +51,19 @@ export default async function SpeakerPage({ params }: { params: Promise<{ id: st
           <p className="eyebrow">Qualified speaker / Signal brief</p>
           <h1>{speaker.name}</h1>
           <p className="role-line">{speaker.title} · {speaker.company}</p>
+          {speaker.email && (
+            <div style={{ marginTop: '0.75rem', display: 'flex', gap: '1rem', alignItems: 'center', fontSize: '0.9rem', color: '#a1a1aa' }}>
+              <span>📧 {speaker.email}</span>
+              {speaker.linkedinUrl && (
+                <a href={speaker.linkedinUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa', textDecoration: 'underline' }}>
+                  LinkedIn Profile ↗
+                </a>
+              )}
+              {speaker.companyDomain && (
+                <span style={{ color: '#71717a' }}>🌐 {speaker.companyDomain}</span>
+              )}
+            </div>
+          )}
         </div>
         <ScoreBadge score={speaker.score} />
       </header>
@@ -45,8 +80,15 @@ export default async function SpeakerPage({ params }: { params: Promise<{ id: st
         </article>
 
         <article className="evidence-card">
-          <p className="eyebrow">Score evidence</p>
-          <h2>Why this person matters</h2>
+          <p className="eyebrow">Contact & Score Evidence</p>
+          <h2>Contact & Qualification Details</h2>
+          <div style={{ marginBottom: '1.25rem', padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', fontSize: '0.85rem' }}>
+              <div><strong>Email:</strong> <br/><span style={{ color: '#38bdf8' }}>{speaker.email || "Not derived"}</span></div>
+              <div><strong>LinkedIn:</strong> <br/>{speaker.linkedinUrl ? <a href={speaker.linkedinUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa' }}>LinkedIn ↗</a> : "N/A"}</div>
+              <div><strong>Company Domain:</strong> <br/><span>{speaker.companyDomain || "N/A"}</span></div>
+            </div>
+          </div>
           <ul className="reason-list">
             {speaker.scoreReasons.map((reason) => (
               <li key={reason.group}>
