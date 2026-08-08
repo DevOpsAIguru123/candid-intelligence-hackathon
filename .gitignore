@@ -10,3 +10,6 @@ test-results/
 .firecrawl/
 .superpowers/
 .worktrees/
+
+# gstack QA reports and local artifacts
+.gstack/

@@ -394,8 +394,9 @@ export class SupabaseSpeakerSignalRepository implements SpeakerSignalRepository 
   private pool: Pool;
 
   constructor(connectionString: string) {
+    const cleanedUrl = connectionString.trim().replace(/^["']|["']$/g, "");
     this.pool = new Pool({
-      connectionString,
+      connectionString: cleanedUrl,
       ssl: { rejectUnauthorized: false },
       max: 10,
     });
@@ -549,7 +550,13 @@ export function createRepository(path = "data/speaker-signal.db"): SpeakerSignal
   if (process.env.DATABASE_URL) {
     return new SupabaseSpeakerSignalRepository(process.env.DATABASE_URL);
   }
-  if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
+  if (path !== ":memory:") {
+    try {
+      mkdirSync(dirname(path), { recursive: true });
+    } catch {
+      // Directory creation ignored in container/serverless environments
+    }
+  }
   return new SqliteSpeakerSignalRepository(new DatabaseSync(path));
 }
 
