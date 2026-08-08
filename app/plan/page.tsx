@@ -40,9 +40,12 @@ export default async function PlanPage() {
     ),
   );
   const drafts = sequenceLists.flat();
+  // Count only entries whose speaker still resolves. A stale row would
+  // otherwise report a person the page cannot show or let you remove.
+  const resolvedMeetList = meetList.filter((entry) => speakersById.has(entry.speakerId));
   const summary = summarizePlan({
     attendance,
-    meetList,
+    meetList: resolvedMeetList,
     approvals,
     draftCount: drafts.length,
   });

@@ -65,7 +65,11 @@ export default async function SpeakersPage() {
       </header>
 
       <section className="metric-grid metric-grid-three">
-        <MetricCard label="On your meet list" value={meetIds.size} detail="Saved from an event" />
+        <MetricCard
+          label="On your meet list"
+          value={speakers.filter((speaker) => meetIds.has(speaker.id)).length}
+          detail="Saved from an event"
+        />
         <MetricCard
           label="With an approved email"
           value={approvedSpeakerIds.size}

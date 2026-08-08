@@ -55,30 +55,43 @@ export async function POST(request: Request) {
   const planning = getPlanningRepository();
   const input = parsed.data;
 
+  /**
+   * Planning rows live in their own tables with no foreign key to the
+   * conference data, so an id that does not exist would be stored happily and
+   * then inflate the counts while rendering no row anyone could remove.
+   */
+  const unknown = (what: string) =>
+    NextResponse.json({ success: false, message: `Unknown ${what}.` }, { status: 422 });
+
   switch (input.action) {
-    case "attendance":
+    case "attendance": {
+      if (!(await getRepository().getConference(input.conferenceId))) return unknown("conference");
       return NextResponse.json({
         success: true,
         attendance: planning.setAttendance(input.conferenceId, input.status),
       });
+    }
 
-    case "meet-add":
+    case "meet-add": {
+      if (!(await getRepository().getSpeaker(input.speakerId))) return unknown("speaker");
       return NextResponse.json({
         success: true,
         entry: planning.addToMeetList(input.speakerId, input.conferenceId, input.note ?? ""),
       });
+    }
 
-    case "meet-note":
-      return NextResponse.json({
-        success: true,
-        entry: planning.setMeetNote(input.speakerId, input.note),
-      });
+    case "meet-note": {
+      const entry = planning.setMeetNote(input.speakerId, input.note);
+      if (!entry) return unknown("speaker on your meet list");
+      return NextResponse.json({ success: true, entry });
+    }
 
     case "meet-remove":
       planning.removeFromMeetList(input.speakerId);
       return NextResponse.json({ success: true });
 
-    case "approval":
+    case "approval": {
+      if (!(await getRepository().getSpeaker(input.speakerId))) return unknown("speaker");
       return NextResponse.json({
         success: true,
         approval: planning.setApproval(
@@ -88,6 +101,7 @@ export async function POST(request: Request) {
           input.note ?? "",
         ),
       });
+    }
 
     case "advance-stage":
       try {
