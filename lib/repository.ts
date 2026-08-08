@@ -355,6 +355,12 @@ async function syncGraphToSupabase(graph: ConferenceGraph): Promise<void> {
       ]
     );
 
+    await client.query("ALTER TABLE speakers ADD COLUMN IF NOT EXISTS email TEXT");
+    await client.query("ALTER TABLE speakers ADD COLUMN IF NOT EXISTS phone TEXT");
+    await client.query("ALTER TABLE speakers ADD COLUMN IF NOT EXISTS linkedin_url TEXT");
+    await client.query("ALTER TABLE speakers ADD COLUMN IF NOT EXISTS profile_url TEXT");
+    await client.query("ALTER TABLE speakers ADD COLUMN IF NOT EXISTS company_domain TEXT");
+
     await client.query("DELETE FROM speakers WHERE conference_id = $1", [graph.conference.id]);
 
     for (const sp of graph.speakers) {
@@ -441,6 +447,12 @@ export class SupabaseSpeakerSignalRepository implements SpeakerSignalRepository 
           graph.conference.lastIngestedAt,
         ]
       );
+
+      await client.query("ALTER TABLE speakers ADD COLUMN IF NOT EXISTS email TEXT");
+      await client.query("ALTER TABLE speakers ADD COLUMN IF NOT EXISTS phone TEXT");
+      await client.query("ALTER TABLE speakers ADD COLUMN IF NOT EXISTS linkedin_url TEXT");
+      await client.query("ALTER TABLE speakers ADD COLUMN IF NOT EXISTS profile_url TEXT");
+      await client.query("ALTER TABLE speakers ADD COLUMN IF NOT EXISTS company_domain TEXT");
 
       await client.query("DELETE FROM speakers WHERE conference_id = $1", [graph.conference.id]);
 

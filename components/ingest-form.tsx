@@ -71,7 +71,16 @@ export function IngestForm() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const result = (await response.json()) as ApiResult;
+
+      const contentType = response.headers.get("content-type");
+      let result: ApiResult;
+      if (contentType && contentType.includes("application/json")) {
+        result = (await response.json()) as ApiResult;
+      } else {
+        const text = await response.text();
+        result = { success: false, message: text.slice(0, 150) || "Server returned non-JSON response." };
+      }
+
       if (!response.ok || !result.success || !result.conference) {
         throw new Error(result.message ?? "The conference could not be analyzed.");
       }

@@ -15,23 +15,30 @@ const requestSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const parsed = requestSchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) {
+  try {
+    const parsed = requestSchema.safeParse(await request.json().catch(() => null));
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, message: parsed.error.issues[0]?.message ?? "Invalid request." },
+        { status: 400 },
+      );
+    }
+
+    const result = await ingestConference({ url: parsed.data.url });
+
+    if (!result.success) {
+      return NextResponse.json(result, {
+        status: result.errorCode === "FETCH_FAILED" ? 502 : 422,
+      });
+    }
+
+    await getRepository().replaceConference(result);
+
+    return NextResponse.json(result);
+  } catch (error) {
     return NextResponse.json(
-      { success: false, message: parsed.error.issues[0]?.message ?? "Invalid request." },
-      { status: 400 },
+      { success: false, message: error instanceof Error ? error.message : "Ingestion failed." },
+      { status: 500 },
     );
   }
-
-  const result = await ingestConference({ url: parsed.data.url });
-
-  if (!result.success) {
-    return NextResponse.json(result, {
-      status: result.errorCode === "FETCH_FAILED" ? 502 : 422,
-    });
-  }
-
-  await getRepository().replaceConference(result);
-
-  return NextResponse.json(result);
 }
