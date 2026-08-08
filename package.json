@@ -13,10 +13,10 @@
     "test": "node --no-warnings ./node_modules/vitest/vitest.mjs run",
     "test:watch": "node --no-warnings ./node_modules/vitest/vitest.mjs",
     "test:e2e": "playwright test",
-    "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate-postgres.mjs",
-    "dcwp:ingest": "node --env-file-if-exists=.env.local --import tsx scripts/ingest-dcwp.ts",
-    "research:claim": "node --env-file-if-exists=.env.local --import tsx scripts/claim-research-task.ts",
-    "research:complete": "node --env-file-if-exists=.env.local --import tsx scripts/complete-research-task.ts"
+    "db:migrate": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/migrate-postgres.mjs",
+    "dcwp:ingest": "node --env-file-if-exists=.env --env-file-if-exists=.env.local --import tsx scripts/ingest-dcwp.ts",
+    "research:claim": "node --env-file-if-exists=.env --env-file-if-exists=.env.local --import tsx scripts/claim-research-task.ts",
+    "research:complete": "node --env-file-if-exists=.env --env-file-if-exists=.env.local --import tsx scripts/complete-research-task.ts"
   },
   "dependencies": {
     "cheerio": "^1.2.0",

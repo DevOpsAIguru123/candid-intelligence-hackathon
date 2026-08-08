@@ -21,10 +21,11 @@ Open [http://localhost:3000](http://localhost:3000).
 ### Persistence Configuration
 
 The conference adapter workflows support both PostgreSQL/Supabase and SQLite repositories:
-- When `DATABASE_URL` is set in `.env.local` (e.g. `DATABASE_URL=postgresql://...`), the DCWP ingestion and research-task scripts persist to PostgreSQL/Supabase. Run `pnpm db:migrate` before live ingestion to apply the schema.
-- When `DATABASE_URL` is absent or empty, those scripts fall back locally to SQLite (`data/speaker-signal.db` or custom `DATABASE_PATH`).
+- Put secrets in `.env` (git-ignored). Copy `.env.example` to start. When `DATABASE_URL` is set, the app and the ingestion and research-task scripts read PostgreSQL/Supabase. Run `pnpm db:migrate` before live ingestion to apply the schema.
+- When `DATABASE_URL` is absent or empty, the app and those scripts fall back to local SQLite (`data/speaker-signal.db` or a custom `DATABASE_PATH`), which starts empty.
+- `.env.local` still works and takes precedence if you already have one, but keep secrets in a single file to avoid one silently overriding the other.
 
-To enable rendered fallback for blocked or JavaScript-only conference pages, add a server-side Firecrawl key to `.env.local`:
+To enable rendered fallback for blocked or JavaScript-only conference pages, add a server-side Firecrawl key to `.env`:
 
 ```bash
 FIRECRAWL_API_KEY=your_key_here
