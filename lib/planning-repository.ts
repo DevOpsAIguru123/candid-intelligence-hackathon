@@ -194,7 +194,13 @@ class SqlitePlanningRepository implements PlanningRepository {
 }
 
 export function createPlanningRepository(path = "data/speaker-signal.db"): PlanningRepository {
-  if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
+  if (path !== ":memory:") {
+    try {
+      mkdirSync(dirname(path), { recursive: true });
+    } catch {
+      // Directory creation ignored in container/serverless environments
+    }
+  }
   return new SqlitePlanningRepository(new DatabaseSync(path));
 }
 

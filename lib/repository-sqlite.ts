@@ -783,6 +783,12 @@ export class SqliteConferenceRepository implements ConferenceRepository {
 }
 
 export function createSqliteRepository(path = "data/speaker-signal.db"): SqliteConferenceRepository {
-  if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
+  if (path !== ":memory:") {
+    try {
+      mkdirSync(dirname(path), { recursive: true });
+    } catch {
+      // Directory creation ignored in container/serverless environments
+    }
+  }
   return new SqliteConferenceRepository(new DatabaseSync(path));
 }
