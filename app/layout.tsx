@@ -6,8 +6,8 @@ import { Sidebar } from "@/components/sidebar";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Speaker Signal | Candid Intelligence",
-  description: "Conference intelligence for energy infrastructure origination.",
+  title: "GTM Intelligence Agent | Candid Intelligence",
+  description: "Autonomous Go-To-Market event & lead intelligence agent for executive outreach origination.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

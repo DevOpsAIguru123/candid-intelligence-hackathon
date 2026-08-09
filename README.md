@@ -1,12 +1,12 @@
-# Speaker Signal
+# GTM Intelligence Agent
 
-Speaker Signal is a Track 2 prototype for the Candid Intelligence Houston Energy + AI Hackathon. Give it one public energy-conference agenda URL and it turns that agenda into a ranked speaker workspace: explainable ICP scores, grounded "Why Now?" recommendations, conference-relative outreach drafts, a human-approved action plan, and an eight-stage GTM funnel.
+GTM Intelligence Agent is a Go-To-Market AI platform built for the Candid Intelligence Houston Energy + AI Hackathon. Give it one public conference agenda URL and it turns that agenda into a ranked lead & speaker intelligence workspace: explainable ICP scores, grounded "Why Now?" buying signal recommendations, conference-relative outreach drafts, a human-approved action plan, and an eight-stage GTM funnel.
 
 The application reads live conference records only. It never silently substitutes sample data, a failed ingestion never overwrites an existing conference, and drafted outreach is never sent automatically.
 
 ## Overview
 
-Speaker Signal turns a public agenda into an actionable conference plan:
+GTM Intelligence Agent turns a public agenda into an actionable GTM conference plan:
 
 - **Analyze the event.** Extract conference, session, and speaker records from public HTML and JSON-LD, with a rendered Firecrawl fallback when configured.
 - **Find the right people.** Normalize and conservatively deduplicate speakers, then rank them with a deterministic 100-point ICP score.

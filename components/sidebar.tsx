@@ -15,13 +15,13 @@ const navigation = [
 export function Sidebar() {
   return (
     <aside className="sidebar">
-      <Link className="brand" href="/" aria-label="Speaker Signal overview">
+      <Link className="brand" href="/" aria-label="GTM Intelligence Agent overview">
         <span className="brand-mark" aria-hidden="true">
-          S
+          G
         </span>
         <span>
-          <strong>SPEAKER SIGNAL</strong>
-          <small>FIND THE RIGHT PEOPLE</small>
+          <strong>GTM INTELLIGENCE</strong>
+          <small>EVENT & LEAD AGENT</small>
         </span>
       </Link>
 
